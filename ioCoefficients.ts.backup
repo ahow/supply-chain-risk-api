@@ -1,0 +1,244 @@
+/**
+ * Input-Output Coefficient Matrix
+ * 
+ * Simplified I-O coefficients representing key supply chain relationships
+ * Based on OECD ICIO patterns and global trade flows
+ * 
+ * Format: {from_country}_{from_sector} → {to_country}_{to_sector}: coefficient
+ * Coefficient represents the share of inputs from supplier in buyer's total inputs
+ */
+
+export interface IOCoefficient {
+  from_country: string;
+  from_sector: string;
+  to_country: string;
+  to_sector: string;
+  coefficient: number;
+  description?: string;
+}
+
+/**
+ * Generate I-O coefficients for a given country-sector combination
+ * Returns top suppliers with their input coefficients
+ */
+export function getIOCoefficients(country: string, sector: string): IOCoefficient[] {
+  // Domestic self-supply coefficients (typical ranges by sector type)
+  const domesticCoefficients: Record<string, number> = {
+    // Primary sectors - high domestic content
+    'D01T03': 0.35, // Agriculture
+    'D05T06': 0.40, // Energy mining
+    'D07T08': 0.38, // Non-energy mining
+    
+    // Manufacturing - moderate domestic content
+    'D10T12': 0.30, // Food
+    'D13T15': 0.25, // Textiles
+    'D20T21': 0.28, // Chemicals
+    'D24T25': 0.32, // Metals
+    'D26T27': 0.20, // Electronics (highly globalized)
+    'D29T30': 0.28, // Transport equipment
+    
+    // Services - high domestic content
+    'D41T43': 0.45, // Construction
+    'D55T56': 0.40, // Accommodation & food
+    'D64T66': 0.50, // Financial services
+    'D85': 0.55, // Education
+    'D86T88': 0.50, // Health
+  };
+  
+  const coefficients: IOCoefficient[] = [];
+  
+  // Add domestic self-supply
+  const domesticCoef = domesticCoefficients[sector] || 0.30;
+  coefficients.push({
+    from_country: country,
+    from_sector: sector,
+    to_country: country,
+    to_sector: sector,
+    coefficient: domesticCoef,
+    description: 'Domestic self-supply'
+  });
+  
+  // Add cross-sector domestic dependencies
+  addDomesticDependencies(country, sector, coefficients);
+  
+  // Add international suppliers
+  addInternationalSuppliers(country, sector, coefficients);
+  
+  // Normalize coefficients to sum to ~0.80 (remaining 0.20 is value-added)
+  normalizeCoefficients(coefficients, 0.80);
+  
+  return coefficients;
+}
+
+function addDomesticDependencies(country: string, sector: string, coefficients: IOCoefficient[]) {
+  // Sector-specific domestic input patterns
+  const domesticInputs: Record<string, Array<{sector: string, coef: number}>> = {
+    // Food manufacturing depends on agriculture
+    'D10T12': [
+      { sector: 'D01T03', coef: 0.15 }, // Agriculture
+      { sector: 'D22', coef: 0.05 },    // Packaging (plastics)
+      { sector: 'D20T21', coef: 0.04 }  // Chemicals (preservatives)
+    ],
+    
+    // Textiles depend on agriculture and chemicals
+    'D13T15': [
+      { sector: 'D01T03', coef: 0.08 }, // Cotton, wool
+      { sector: 'D20T21', coef: 0.12 }  // Dyes, chemicals
+    ],
+    
+    // Electronics depend on metals and chemicals
+    'D26T27': [
+      { sector: 'D24T25', coef: 0.10 }, // Metals
+      { sector: 'D20T21', coef: 0.08 }, // Chemicals
+      { sector: 'D22', coef: 0.06 }     // Plastics
+    ],
+    
+    // Transport equipment depends on metals and electronics
+    'D29T30': [
+      { sector: 'D24T25', coef: 0.18 }, // Metals
+      { sector: 'D26T27', coef: 0.12 }, // Electronics
+      { sector: 'D22', coef: 0.08 }     // Rubber & plastics
+    ],
+    
+    // Construction depends on non-metallic minerals and metals
+    'D41T43': [
+      { sector: 'D23', coef: 0.15 },    // Cement, glass
+      { sector: 'D24T25', coef: 0.12 }, // Metals
+      { sector: 'D16', coef: 0.08 }     // Wood products
+    ],
+    
+    // Chemicals depend on petroleum and mining
+    'D20T21': [
+      { sector: 'D19', coef: 0.14 },    // Petroleum
+      { sector: 'D07T08', coef: 0.06 }  // Mining
+    ]
+  };
+  
+  const inputs = domesticInputs[sector] || [];
+  inputs.forEach(input => {
+    coefficients.push({
+      from_country: country,
+      from_sector: input.sector,
+      to_country: country,
+      to_sector: sector,
+      coefficient: input.coef,
+      description: `Domestic input from ${input.sector}`
+    });
+  });
+}
+
+function addInternationalSuppliers(country: string, sector: string, coefficients: IOCoefficient[]) {
+  // Major global supply chain patterns
+  const internationalPatterns: Record<string, Array<{country: string, sector: string, coef: number}>> = {
+    // Electronics - highly globalized
+    'D26T27': [
+      { country: 'CHN', sector: 'D26T27', coef: 0.15 },
+      { country: 'TWN', sector: 'D26T27', coef: 0.08 },
+      { country: 'KOR', sector: 'D26T27', coef: 0.07 },
+      { country: 'JPN', sector: 'D26T27', coef: 0.06 },
+      { country: 'MYS', sector: 'D26T27', coef: 0.04 }
+    ],
+    
+    // Textiles - concentrated in Asia
+    'D13T15': [
+      { country: 'CHN', sector: 'D13T15', coef: 0.18 },
+      { country: 'IND', sector: 'D13T15', coef: 0.10 },
+      { country: 'VNM', sector: 'D13T15', coef: 0.08 },
+      { country: 'BGD', sector: 'D13T15', coef: 0.06 },
+      { country: 'TUR', sector: 'D13T15', coef: 0.04 }
+    ],
+    
+    // Chemicals - global trade
+    'D20T21': [
+      { country: 'CHN', sector: 'D20T21', coef: 0.10 },
+      { country: 'DEU', sector: 'D20T21', coef: 0.08 },
+      { country: 'USA', sector: 'D20T21', coef: 0.07 },
+      { country: 'JPN', sector: 'D20T21', coef: 0.05 }
+    ],
+    
+    // Metals - resource-dependent
+    'D24T25': [
+      { country: 'CHN', sector: 'D24T25', coef: 0.14 },
+      { country: 'JPN', sector: 'D24T25', coef: 0.06 },
+      { country: 'DEU', sector: 'D24T25', coef: 0.05 },
+      { country: 'KOR', sector: 'D24T25', coef: 0.04 }
+    ],
+    
+    // Transport equipment - regional supply chains
+    'D29T30': [
+      { country: 'DEU', sector: 'D29T30', coef: 0.08 },
+      { country: 'JPN', sector: 'D29T30', coef: 0.07 },
+      { country: 'USA', sector: 'D29T30', coef: 0.06 },
+      { country: 'CHN', sector: 'D29T30', coef: 0.05 }
+    ],
+    
+    // Food - regional + specialized imports
+    'D10T12': [
+      { country: 'BRA', sector: 'D01T03', coef: 0.06 }, // Agricultural imports
+      { country: 'ARG', sector: 'D01T03', coef: 0.04 },
+      { country: 'USA', sector: 'D01T03', coef: 0.05 },
+      { country: 'CHN', sector: 'D10T12', coef: 0.04 }
+    ]
+  };
+  
+  // Get international suppliers for this sector
+  let suppliers = internationalPatterns[sector] || [];
+  
+  // Filter out self-supply (if buyer country is in supplier list)
+  suppliers = suppliers.filter(s => s.country !== country);
+  
+  // Add China as default supplier for manufacturing sectors if not already included
+  if (sector.startsWith('D') && parseInt(sector.substring(1, 3)) >= 10 && parseInt(sector.substring(1, 3)) <= 33) {
+    if (!suppliers.some(s => s.country === 'CHN')) {
+      suppliers.push({ country: 'CHN', sector: sector, coef: 0.08 });
+    }
+  }
+  
+  suppliers.forEach(supplier => {
+    coefficients.push({
+      from_country: supplier.country,
+      from_sector: supplier.sector,
+      to_country: country,
+      to_sector: sector,
+      coefficient: supplier.coef,
+      description: `International supply from ${supplier.country}`
+    });
+  });
+}
+
+function normalizeCoefficients(coefficients: IOCoefficient[], target: number) {
+  const sum = coefficients.reduce((acc, c) => acc + c.coefficient, 0);
+  if (sum > 0 && sum !== target) {
+    const factor = target / sum;
+    coefficients.forEach(c => {
+      c.coefficient = parseFloat((c.coefficient * factor).toFixed(4));
+    });
+  }
+}
+
+/**
+ * Get all suppliers for a country-sector combination
+ * Returns suppliers sorted by coefficient (highest first)
+ */
+export function getSuppliers(country: string, sector: string): IOCoefficient[] {
+  const coefficients = getIOCoefficients(country, sector);
+  return coefficients
+    .filter(c => c.to_country === country && c.to_sector === sector)
+    .sort((a, b) => b.coefficient - a.coefficient);
+}
+
+/**
+ * Get top N suppliers by coefficient value
+ */
+export function getTopSuppliers(country: string, sector: string, n: number = 10): IOCoefficient[] {
+  return getSuppliers(country, sector).slice(0, n);
+}
+
+/**
+ * Calculate total input coefficient coverage
+ * (sum of all supplier coefficients)
+ */
+export function getTotalInputCoverage(country: string, sector: string): number {
+  const suppliers = getSuppliers(country, sector);
+  return suppliers.reduce((sum, s) => sum + s.coefficient, 0);
+}
