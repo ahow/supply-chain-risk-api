@@ -21,6 +21,12 @@ from io_model_factory import IOModelFactory, create_io_model
 from risk_calculator_v2 import MultiTierRiskCalculator
 from climate_api_client import ClimateRiskAPIClient
 from country_code_mapper import normalize_country_code, is_valid_for_model
+from cache_manager import (
+    get_assessment_from_cache,
+    save_assessment_to_cache,
+    get_cache_stats,
+    clear_cache
+)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -76,8 +82,8 @@ def home():
     
     return jsonify({
         'name': 'Supply Chain Risk Exposure Assessment API',
-        'version': '3.0.0',
-        'description': 'Comprehensive risk assessment with dual I-O model support',
+        'version': '3.1.0',
+        'description': 'Comprehensive risk assessment with dual I-O model support and performance caching',
         'authentication': auth_status,
         'models': {
             'oecd': 'OECD ICIO Extended (85 countries, 56 sectors, 2020)',
@@ -90,7 +96,9 @@ def home():
             'sectors': '/api/sectors?model={oecd|exiobase}',
             'assess': '/api/assess?country={CODE}&sector={CODE}&model={oecd|exiobase}',
             'batch': '/api/batch (POST)',
-            'compare': '/api/compare?country={CODE}&sector={CODE}'
+            'compare': '/api/compare?country={CODE}&sector={CODE}',
+            'cache_stats': '/api/cache/stats',
+            'cache_clear': '/api/cache/clear (POST)'
         },
         'features': [
             'Dual I-O model support (OECD ICIO + EXIOBASE)',
@@ -98,6 +106,7 @@ def home():
             'Multi-tier supply chain analysis (Tier-1, Tier-2, Tier-3)',
             'Climate expected loss calculations',
             '5 independent risk types',
+            'In-memory caching for fast repeated assessments',
             'Model comparison endpoint',
             'API key authentication'
         ]
@@ -233,11 +242,23 @@ def assess_risk():
         }), 400
     
     try:
+        # Check cache first
+        cached_result = get_assessment_from_cache(country, sector, model_type)
+        if cached_result is not None:
+            # Add cache hit indicator
+            cached_result['cache_hit'] = True
+            return jsonify(cached_result)
+        
+        # Cache miss - calculate risk
         calculator = get_risk_calculator(model_type)
         result = calculator.assess_risk(country, sector)
         
         if result and 'error' in result:
             return jsonify(result), 404
+        
+        # Save to cache
+        result['cache_hit'] = False
+        save_assessment_to_cache(country, sector, model_type, result)
         
         return jsonify(result)
     except Exception as e:
@@ -343,6 +364,46 @@ def compare_models():
     except Exception as e:
         return jsonify({
             'error': 'Comparison failed',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cache/stats')
+@require_api_key
+def cache_statistics():
+    """Get cache performance statistics"""
+    try:
+        stats = get_cache_stats()
+        return jsonify({
+            'cache_stats': stats,
+            'description': {
+                'hits': 'Number of successful cache retrievals',
+                'misses': 'Number of cache misses (calculations performed)',
+                'total_requests': 'Total assessment requests',
+                'hit_rate_percent': 'Percentage of requests served from cache',
+                'cache_size': 'Current number of cached assessments',
+                'max_cache_size': 'Maximum cache capacity',
+                'ttl_seconds': 'Cache entry time-to-live'
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to retrieve cache stats',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cache/clear', methods=['POST'])
+@require_api_key
+def clear_cache_endpoint():
+    """Clear all cached assessments"""
+    try:
+        clear_cache()
+        return jsonify({
+            'success': True,
+            'message': 'Cache cleared successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to clear cache',
             'message': str(e)
         }), 500
 

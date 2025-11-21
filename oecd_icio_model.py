@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Optional
 from io_model_base import IOModel, Country, Sector, Supplier
 from oecd_icio_data import OECD_ICIO_COUNTRIES, OECD_ICIO_SECTORS
+from functools import lru_cache
 
 
 class OECDICIOModel(IOModel):
@@ -30,6 +31,7 @@ class OECDICIOModel(IOModel):
         self._countries_cache = None
         self._sectors_cache = None
         self._coefficients_df = None
+        self._coefficient_cache = {}
         self._load_data()
     
     def _load_data(self):
@@ -111,7 +113,14 @@ class OECDICIOModel(IOModel):
         
         The coefficient represents how much of 'from_country_from_sector' output
         is needed to produce one unit of 'to_country_to_sector' output.
+        
+        Uses in-memory caching to speed up repeated lookups.
         """
+        # Check cache first
+        cache_key = (from_country, from_sector, to_country, to_sector)
+        if cache_key in self._coefficient_cache:
+            return self._coefficient_cache[cache_key]
+        
         self._ensure_coefficients_loaded()
         
         # Construct row and column labels
@@ -120,9 +129,15 @@ class OECDICIOModel(IOModel):
         
         try:
             coefficient = self._coefficients_df.loc[row_label, col_label]
-            return float(coefficient) if pd.notna(coefficient) else 0.0
+            result = float(coefficient) if pd.notna(coefficient) else 0.0
         except (KeyError, IndexError):
-            return 0.0
+            result = 0.0
+        
+        # Save to cache (limit cache size to prevent memory issues)
+        if len(self._coefficient_cache) < 100000:
+            self._coefficient_cache[cache_key] = result
+        
+        return result
     
     def get_suppliers(
         self,
