@@ -20,13 +20,16 @@ class OECDICIOModel(IOModel):
     Uses OECD ICIO Extended Edition data with 85 countries and 56 sectors.
     """
     
-    def __init__(self, data_path: str = '/home/ubuntu/heroku-risk-api'):
+    def __init__(self, data_path: str = None):
         """
         Initialize the OECD ICIO model.
         
         Args:
             data_path: Path to directory containing OECD ICIO data files
         """
+        if data_path is None:
+            # Use directory where this file is located
+            data_path = Path(__file__).parent
         self.data_path = Path(data_path)
         self._countries_cache = None
         self._sectors_cache = None

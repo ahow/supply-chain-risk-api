@@ -6,6 +6,7 @@ This module implements the IOModel interface for EXIOBASE 3 data.
 
 from typing import List, Optional
 import os
+from pathlib import Path
 from io_model_base import IOModel, Country, Sector, Supplier
 from exiobase_data import EXIOBASE_COUNTRIES, EXIOBASE_SECTORS, EXIOBASE_TO_OECD_MAPPING
 
@@ -18,14 +19,17 @@ class EXIOBASEModel(IOModel):
     Includes environmental satellite accounts.
     """
     
-    def __init__(self, data_path: str = '/home/ubuntu/heroku-risk-api'):
+    def __init__(self, data_path: str = None):
         """
         Initialize the EXIOBASE model.
         
         Args:
             data_path: Path to directory containing EXIOBASE data files
         """
-        self.data_path = data_path
+        if data_path is None:
+            # Use directory where this file is located
+            data_path = Path(__file__).parent
+        self.data_path = str(data_path)
         self._countries_cache = None
         self._sectors_cache = None
         self._coefficients = None  # Lazy load
