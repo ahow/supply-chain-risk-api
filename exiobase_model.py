@@ -5,6 +5,7 @@ This module implements the IOModel interface for EXIOBASE 3 data.
 """
 
 from typing import List, Optional
+import os
 from io_model_base import IOModel, Country, Sector, Supplier
 from exiobase_data import EXIOBASE_COUNTRIES, EXIOBASE_SECTORS, EXIOBASE_TO_OECD_MAPPING
 
@@ -27,6 +28,7 @@ class EXIOBASEModel(IOModel):
         self.data_path = data_path
         self._countries_cache = None
         self._sectors_cache = None
+        self._coefficients = None  # Lazy load
         self._load_data()
     
     def _load_data(self):
@@ -85,6 +87,27 @@ class EXIOBASEModel(IOModel):
                 return sector
         return None
     
+    def _load_coefficients(self):
+        """Load I-O coefficients from file (lazy loading)."""
+        import pandas as pd
+        import gzip
+        
+        coef_file = os.path.join(self.data_path, 'exiobase_io_coefficients.csv.gz')
+        if not os.path.exists(coef_file):
+            print(f"Warning: {coef_file} not found")
+            return {}
+        
+        print(f"Loading EXIOBASE coefficients from {coef_file}...")
+        df = pd.read_csv(coef_file, compression='gzip')
+        
+        coefficients = {}
+        for _, row in df.iterrows():
+            key = f"{row['from_country']}_{row['from_sector']}_{row['to_country']}_{row['to_sector']}"
+            coefficients[key] = float(row['coefficient'])
+        
+        print(f"Loaded {len(coefficients)} EXIOBASE coefficients")
+        return coefficients
+    
     def get_coefficient(
         self,
         from_country: str,
@@ -94,12 +117,13 @@ class EXIOBASEModel(IOModel):
     ) -> float:
         """
         Get technical coefficient from EXIOBASE A matrix.
-        
-        TODO: Implement actual coefficient lookup from EXIOBASE A matrix.
-        For now, returns 0.0 as placeholder.
         """
-        # Placeholder - will be implemented when EXIOBASE A matrix is processed
-        return 0.0
+        # Lazy load coefficients
+        if self._coefficients is None:
+            self._coefficients = self._load_coefficients()
+        
+        key = f"{from_country}_{from_sector}_{to_country}_{to_sector}"
+        return self._coefficients.get(key, 0.0)
     
     def get_suppliers(
         self,
@@ -110,12 +134,33 @@ class EXIOBASEModel(IOModel):
     ) -> List[Supplier]:
         """
         Get top suppliers for a country-sector from EXIOBASE data.
-        
-        TODO: Implement actual supplier lookup from EXIOBASE A matrix.
-        For now, returns empty list as placeholder.
         """
-        # Placeholder - will be implemented when EXIOBASE A matrix is processed
-        return []
+        # Lazy load coefficients
+        if self._coefficients is None:
+            self._coefficients = self._load_coefficients()
+        
+        suppliers = []
+        
+        # Find all coefficients where to_country and to_sector match
+        for key, coef in self._coefficients.items():
+            parts = key.split('_')
+            if len(parts) == 4:
+                from_c, from_s, to_c, to_s = parts
+                if to_c == country and to_s == sector and coef >= min_coefficient:
+                    from_country_obj = self.get_country(from_c)
+                    from_sector_obj = self.get_sector(from_s)
+                    
+                    suppliers.append(Supplier(
+                        country=from_c,
+                        country_name=from_country_obj.name if from_country_obj else from_c,
+                        sector=from_s,
+                        sector_name=from_sector_obj.name if from_sector_obj else from_s,
+                        coefficient=coef
+                    ))
+        
+        # Sort by coefficient (descending) and return top N
+        suppliers.sort(key=lambda s: s.coefficient, reverse=True)
+        return suppliers[:top_n]
     
     def has_environmental_data(self) -> bool:
         """EXIOBASE includes comprehensive environmental satellite accounts"""
@@ -153,5 +198,5 @@ class EXIOBASEModel(IOModel):
             'mapped_to_oecd_sectors': len(self._sectors_cache),
             'environmental_indicators': len(self.get_environmental_indicators()),
             'has_environmental_data': True,
-            'status': 'Partially implemented - coefficient matrix pending'
+            'status': 'Available' if self._coefficients or os.path.exists(os.path.join(self.data_path, 'exiobase_io_coefficients.csv.gz')) else 'Coefficient matrix pending'
         }
