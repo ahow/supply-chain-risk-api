@@ -17,8 +17,8 @@ class ClimateRiskAPIClient:
         try:
             response = requests.post(
                 f"{self.base_url}/assess/country",
-                json={"country_name": country_name},
-                timeout=10
+                json={"country": country_name},
+                timeout=30  # Increased timeout for Heroku cold start
             )
             
             if response.status_code == 200:
@@ -28,5 +28,9 @@ class ClimateRiskAPIClient:
             else:
                 return {"error": f"API returned status {response.status_code}"}
         
+        except requests.exceptions.Timeout:
+            print(f"Climate API timeout for {country_name}")
+            return None  # Return None instead of error dict
         except Exception as e:
-            return {"error": str(e)}
+            print(f"Climate API error for {country_name}: {str(e)}")
+            return None

@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from io_model_base import IOModel
 from oecd_data_full import OECD_COUNTRIES, OECD_SECTORS
 from sector_code_mapper import get_risk_sector_for_oecd
+from climate_api_client import ClimateRiskAPIClient
 
 
 class MultiTierRiskCalculator:
@@ -35,6 +36,7 @@ class MultiTierRiskCalculator:
         self.io_model = io_model
         self.max_tiers = max_tiers
         self.tier_weights = [1.0, 0.4, 0.16]  # 100%, 40%, 16%
+        self.climate_api = ClimateRiskAPIClient()
     
     def get_countries(self) -> List[Dict]:
         """Get list of all supported countries from the I-O model"""
@@ -89,6 +91,29 @@ class MultiTierRiskCalculator:
             country_risk = country['risk_scores'].get(risk_type, 0)
             sector_risk = sector['risk_scores'].get(risk_type, 0)
             direct_risk[risk_type] = round(0.7 * country_risk + 0.3 * sector_risk, 2)
+        
+        # Add expected loss metrics from Climate API
+        climate_data = self.climate_api.get_country_risk(country['name'])
+        if climate_data and 'risk_breakdown' in climate_data:
+            direct_risk['expected_loss'] = {
+                'total_annual_loss': climate_data.get('expected_annual_loss', 0),
+                'total_annual_loss_pct': climate_data.get('expected_annual_loss_pct', 0),
+                'present_value_30yr': climate_data.get('present_value_30yr', 0),
+                'present_value_30yr_pct': climate_data.get('present_value_30yr_pct', 0),
+                'breakdown': {}
+            }
+            
+            # Add individual hazard breakdowns
+            for hazard, data in climate_data['risk_breakdown'].items():
+                direct_risk['expected_loss']['breakdown'][hazard] = {
+                    'annual_loss': data.get('annual_loss', 0),
+                    'annual_loss_pct': data.get('annual_loss_pct', 0),
+                    'confidence': data.get('confidence', 'Unknown'),
+                    'details': data.get('details', '')
+                }
+        else:
+            # No climate data available
+            direct_risk['expected_loss'] = None
         
         return direct_risk
     
