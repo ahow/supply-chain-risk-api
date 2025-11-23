@@ -97,7 +97,88 @@ class MultiTierRiskCalculator:
         
         return direct_risk
     
-    def _add_climate_data(self, direct_risk: Dict, country_name: str) -> None:
+    def _add_supplier_expected_loss(self, indirect_risk: Dict, country_code: str, sector_code: str):
+        """
+        Add aggregated supplier expected loss to indirect_risk.
+        Uses cached Climate API data weighted by I-O coefficients.
+        
+        Args:
+            indirect_risk: Dictionary to add expected_loss to
+            country_code: Target country code
+            sector_code: Target sector code
+        """
+        from expected_loss_cache import get_cache
+        
+        cache = get_cache()
+        
+        # Get suppliers with coefficients
+        suppliers = self.io_model.get_suppliers(
+            country_code,
+            sector_code,
+            top_n=20,
+            min_coefficient=0.001
+        )
+        
+        if not suppliers:
+            return
+        
+        # Initialize aggregated expected loss
+        total_annual_loss = 0.0
+        total_present_value = 0.0
+        hazard_breakdown = {
+            'drought': {'annual_loss': 0.0},
+            'extreme_precipitation': {'annual_loss': 0.0},
+            'flood': {'annual_loss': 0.0},
+            'heat_stress': {'annual_loss': 0.0},
+            'hurricane': {'annual_loss': 0.0}
+        }
+        
+        total_coefficient = sum(s.coefficient for s in suppliers)
+        if total_coefficient == 0:
+            return
+        
+        # Aggregate expected loss from all suppliers
+        for supplier in suppliers:
+            supplier_country_obj = self.io_model.get_country(supplier.country)
+            if not supplier_country_obj:
+                continue
+            
+            # Get cached expected loss data for supplier's country
+            supplier_climate_data = cache.get(supplier_country_obj.name)
+            if not supplier_climate_data:
+                continue
+            
+            # Weight by I-O coefficient
+            weight = supplier.coefficient / total_coefficient
+            
+            # Add weighted expected loss
+            total_annual_loss += supplier_climate_data.get('expected_annual_loss', 0) * weight
+            total_present_value += supplier_climate_data.get('present_value_30yr', 0) * weight
+            
+            # Add weighted hazard breakdown
+            risk_breakdown = supplier_climate_data.get('risk_breakdown', {})
+            for hazard in hazard_breakdown.keys():
+                if hazard in risk_breakdown:
+                    hazard_breakdown[hazard]['annual_loss'] += risk_breakdown[hazard].get('annual_loss', 0) * weight
+        
+        # Add to indirect_risk if we have data
+        if total_annual_loss > 0:
+            indirect_risk['expected_loss'] = {
+                'total_annual_loss': round(total_annual_loss, 2),
+                'total_annual_loss_pct': round(total_annual_loss / 1000000 * 100, 4),
+                'present_value_30yr': round(total_present_value, 2),
+                'present_value_30yr_pct': round(total_present_value / 1000000 * 100, 4),
+                'breakdown': {
+                    hazard: {
+                        'annual_loss': round(data['annual_loss'], 2),
+                        'annual_loss_pct': round(data['annual_loss'] / 1000000 * 100, 4)
+                    }
+                    for hazard, data in hazard_breakdown.items()
+                },
+                'note': 'Supplier expected loss weighted by I-O coefficients from cached Climate API data'
+            }
+    
+    def _add_climate_data(self, direct_risk: Dict, country_name: str):
         """
         Add Climate API expected loss data to direct risk.
         Called only when skip_climate=False.
@@ -280,6 +361,10 @@ class MultiTierRiskCalculator:
         
         indirect_risk = self.calculate_indirect_risk(country_code, sector_code)
         total_risk = self.calculate_total_risk(country_code, sector_code)
+        
+        # Add supplier expected loss if Climate API is enabled
+        if not skip_climate and indirect_risk:
+            self._add_supplier_expected_loss(indirect_risk, country_code, sector_code)
         
         # Get top suppliers
         suppliers = self.io_model.get_suppliers(country_code, sector_code, top_n=10)

@@ -347,6 +347,92 @@ def compare_models():
             'message': str(e)
         }), 500
 
+@app.route('/api/cache/stats')
+@require_api_key
+def cache_stats():
+    """Get expected loss cache statistics"""
+    from expected_loss_cache import get_cache
+    
+    try:
+        cache = get_cache()
+        stats = cache.get_cache_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to get cache stats',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cache/refresh', methods=['POST'])
+@require_api_key
+def refresh_cache():
+    """Start a background cache refresh job
+    
+    This will re-fetch Climate API data for all 85 OECD countries in the background.
+    Takes approximately 15-20 minutes to complete.
+    Returns immediately with a job ID that can be used to check progress.
+    
+    Query parameters:
+        force: If 'true', refresh all countries even if already cached
+    """
+    from cache_job_manager import get_job_manager
+    import uuid
+    
+    force_refresh = request.args.get('force', 'false').lower() == 'true'
+    
+    try:
+        # Get OECD model to get list of countries
+        io_model = IOModelFactory.get_model('oecd')
+        countries = io_model.get_countries()
+        country_names = [c.name for c in countries]
+        
+        # Start background job
+        job_manager = get_job_manager()
+        job_id = str(uuid.uuid4())
+        
+        job_status = job_manager.start_job(job_id, country_names, force_refresh)
+        
+        if 'error' in job_status:
+            return jsonify(job_status), 409  # Conflict - job already running
+        
+        return jsonify({
+            'status': 'started',
+            'message': 'Cache refresh job started in background',
+            'job': job_status,
+            'check_status_url': f'/api/cache/jobs/{job_id}'
+        }), 202  # Accepted
+    except Exception as e:
+        return jsonify({
+            'error': 'Failed to start cache refresh job',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/cache/jobs/<job_id>')
+@require_api_key
+def get_cache_job_status(job_id):
+    """Get status of a cache refresh job"""
+    from cache_job_manager import get_job_manager
+    
+    job_manager = get_job_manager()
+    job_status = job_manager.get_job_status(job_id)
+    
+    if not job_status:
+        return jsonify({
+            'error': 'Job not found',
+            'job_id': job_id
+        }), 404
+    
+    return jsonify(job_status)
+
+@app.route('/api/cache/jobs')
+@require_api_key
+def list_cache_jobs():
+    """List all cache refresh jobs"""
+    from cache_job_manager import get_job_manager
+    
+    job_manager = get_job_manager()
+    return jsonify(job_manager.get_all_jobs())
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
