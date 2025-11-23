@@ -12,3 +12,5 @@ ENV/
 *.pkl
 *.tar.gz
 *.csv.gz
+oecd_icio_coefficients_full.csv.gz
+source.tar.gz
