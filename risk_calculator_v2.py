@@ -92,8 +92,17 @@ class MultiTierRiskCalculator:
             sector_risk = sector['risk_scores'].get(risk_type, 0)
             direct_risk[risk_type] = round(0.7 * country_risk + 0.3 * sector_risk, 2)
         
-        # Add expected loss metrics from Climate API
-        climate_data = self.climate_api.get_country_risk(country['name'])
+        # Expected loss will be added separately if not skipped
+        direct_risk['expected_loss'] = None
+        
+        return direct_risk
+    
+    def _add_climate_data(self, direct_risk: Dict, country_name: str) -> None:
+        """
+        Add Climate API expected loss data to direct risk.
+        Called only when skip_climate=False.
+        """
+        climate_data = self.climate_api.get_country_risk(country_name)
         if climate_data and 'risk_breakdown' in climate_data:
             direct_risk['expected_loss'] = {
                 'total_annual_loss': climate_data.get('expected_annual_loss', 0),
@@ -111,11 +120,6 @@ class MultiTierRiskCalculator:
                     'confidence': data.get('confidence', 'Unknown'),
                     'details': data.get('details', '')
                 }
-        else:
-            # No climate data available
-            direct_risk['expected_loss'] = None
-        
-        return direct_risk
     
     def calculate_indirect_risk(
         self,
@@ -232,9 +236,14 @@ class MultiTierRiskCalculator:
         
         return total_risk
     
-    def assess_risk(self, country_code: str, sector_code: str) -> Optional[Dict]:
+    def assess_risk(self, country_code: str, sector_code: str, skip_climate: bool = False) -> Optional[Dict]:
         """
         Comprehensive risk assessment for a country-sector.
+        
+        Args:
+            country_code: ISO country code
+            sector_code: Sector code
+            skip_climate: If True, skip Climate API call for faster response
         
         Returns complete assessment including:
         - Direct risk scores
@@ -258,6 +267,10 @@ class MultiTierRiskCalculator:
         
         # Calculate risks
         direct_risk = self.calculate_direct_risk(country_code, sector_code)
+        
+        # Add Climate API data if not skipped
+        if not skip_climate and direct_risk:
+            self._add_climate_data(direct_risk, country_obj.name if country_obj else country_code)
         if not direct_risk:
             return {
                 'error': f'Risk data not available for {country_code}_{sector_code}',

@@ -218,12 +218,13 @@ def assess_risk():
     country = request.args.get('country', '').upper()
     sector = request.args.get('sector', '').upper()
     model_type = request.args.get('model', 'oecd').lower()
+    skip_climate = request.args.get('skip_climate', 'false').lower() == 'true'
     
     if not country or not sector:
         return jsonify({
             'error': 'Missing required parameters',
             'required': ['country', 'sector'],
-            'optional': ['model (default: oecd)']
+            'optional': ['model (default: oecd)', 'skip_climate (default: false)']
         }), 400
     
     if not IOModelFactory.validate_model_type(model_type):
@@ -234,7 +235,7 @@ def assess_risk():
     
     try:
         calculator = get_risk_calculator(model_type)
-        result = calculator.assess_risk(country, sector)
+        result = calculator.assess_risk(country, sector, skip_climate=skip_climate)
         
         if result and 'error' in result:
             return jsonify(result), 404

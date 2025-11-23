@@ -18,7 +18,7 @@ class ClimateRiskAPIClient:
             response = requests.post(
                 f"{self.base_url}/assess/country",
                 json={"country": country_name},
-                timeout=30  # Increased timeout for Heroku cold start
+                timeout=10  # Reduced timeout to fit within Heroku 30s limit
             )
             
             if response.status_code == 200:
