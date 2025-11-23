@@ -11,3 +11,4 @@ ENV/
 .DS_Store
 *.pkl
 *.tar.gz
+*.csv.gz
