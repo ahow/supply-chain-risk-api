@@ -77,6 +77,15 @@ OECD_COUNTRY_CODES = {
     "Tunisia": "TUN",
     "Vietnam": "VNM",
     
+    # Missing countries
+    "Côte d'Ivoire": "CIV",
+    "Brunei": "BRN",
+    "Belarus": "BLR",
+    "United Arab Emirates": "ARE",
+    "Jordan": "JOR",
+    "Democratic Republic of Congo": "COD",
+    "São Tomé and Príncipe": "STP",
+    
     # Other OECD ICIO countries
     "Angola": "AGO",
     "Bangladesh": "BGD",
@@ -123,23 +132,56 @@ OECD_COUNTRY_CODES = {
     "Rest of Americas": "BRA",
 }
 
-def get_country_code(country_name: str) -> str:
+# Firm heterogeneity splits - map to parent country
+FIRM_SPLITS = {
+    "CN1": "CHN",  # China domestic firms → China
+    "CN2": "CHN",  # China multinational firms → China
+    "MX1": "MEX",  # Mexico domestic firms → Mexico
+    "MX2": "MEX",  # Mexico multinational firms → Mexico
+}
+
+# ISO-3 codes that appear as names in OECD data
+ISO3_AS_NAMES = {
+    "ARE": "ARE",  # United Arab Emirates
+    "BGD": "BGD",  # Bangladesh
+    "BLR": "BLR",  # Belarus
+    "COD": "COD",  # Democratic Republic of Congo
+    "JOR": "JOR",  # Jordan
+    "PAK": "PAK",  # Pakistan
+    "STP": "STP",  # São Tomé and Príncipe
+    "UKR": "UKR",  # Ukraine
+}
+
+def get_country_code(country_name_or_code: str) -> str:
     """
-    Get ISO-3 country code for an OECD country name.
+    Get ISO-3 country code for an OECD country name or code.
     
     Args:
-        country_name: OECD ICIO country name
+        country_name_or_code: OECD ICIO country name or ISO-3 code
     
     Returns:
         ISO-3 country code (e.g., "USA", "CHN", "DEU")
     
     Raises:
-        KeyError: If country name not found in mapping
+        KeyError: If country not found in mapping
     """
-    if country_name in OECD_COUNTRY_CODES:
-        return OECD_COUNTRY_CODES[country_name]
-    else:
-        raise KeyError(f"Country '{country_name}' not found in OECD country code mapping")
+    # Check if it's a firm split first
+    if country_name_or_code in FIRM_SPLITS:
+        return FIRM_SPLITS[country_name_or_code]
+    
+    # Check if it's already an ISO-3 code used as name
+    if country_name_or_code in ISO3_AS_NAMES:
+        return ISO3_AS_NAMES[country_name_or_code]
+    
+    # Check if it's in the country name mapping
+    if country_name_or_code in OECD_COUNTRY_CODES:
+        return OECD_COUNTRY_CODES[country_name_or_code]
+    
+    # If it's a 3-character code, assume it's already ISO-3
+    if len(country_name_or_code) == 3 and country_name_or_code.isupper():
+        return country_name_or_code
+    
+    raise KeyError(f"Country '{country_name_or_code}' not found in OECD country code mapping")
 
 def get_all_country_codes() -> dict:
     """Get all OECD country name to ISO-3 code mappings"""
