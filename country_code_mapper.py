@@ -39,11 +39,12 @@ OECD_ONLY = {
 }
 
 
-# Country name to code mapping for OECD ICIO
-from oecd_icio_data import OECD_ICIO_COUNTRIES
+# Country and sector name to code mapping for OECD ICIO
+from oecd_icio_data import OECD_ICIO_COUNTRIES, OECD_ICIO_SECTORS
 
-# Build reverse lookup: name -> code
+# Build reverse lookups: name -> code
 OECD_NAME_TO_CODE = {country['name']: country['code'] for country in OECD_ICIO_COUNTRIES}
+OECD_SECTOR_NAME_TO_CODE = {sector['name']: sector['code'] for sector in OECD_ICIO_SECTORS}
 
 def country_name_to_code(name: str) -> str:
     """
@@ -62,6 +63,24 @@ def country_name_to_code(name: str) -> str:
         return OECD_NAME_TO_CODE[name]
     else:
         raise ValueError(f"Country name '{name}' not found in OECD ICIO")
+
+def sector_name_to_code(name: str) -> str:
+    """
+    Convert sector name to OECD sector code.
+    
+    Args:
+        name: Sector name (e.g., "Food products, beverages and tobacco")
+        
+    Returns:
+        OECD sector code (e.g., "C10T12")
+        
+    Raises:
+        ValueError: If sector name not found
+    """
+    if name in OECD_SECTOR_NAME_TO_CODE:
+        return OECD_SECTOR_NAME_TO_CODE[name]
+    else:
+        raise ValueError(f"Sector name '{name}' not found in OECD ICIO")
 
 def normalize_country_code(code: str, target_format: str = 'oecd') -> str:
     """

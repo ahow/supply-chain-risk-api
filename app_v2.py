@@ -20,7 +20,7 @@ import os
 from io_model_factory import IOModelFactory, create_io_model
 from risk_calculator_v2 import MultiTierRiskCalculator
 from climate_api_client import ClimateRiskAPIClient
-from country_code_mapper import normalize_country_code, is_valid_for_model, country_name_to_code
+from country_code_mapper import normalize_country_code, is_valid_for_model, country_name_to_code, sector_name_to_code
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -216,11 +216,11 @@ def get_sectors():
 def assess_risk():
     """Assess supply chain risk for a country-sector using specified model"""
     country_input = request.args.get('country', '')  # Can be name or code
-    sector = request.args.get('sector', '').upper()
+    sector_input = request.args.get('sector', '')  # Can be name or code
     model_type = request.args.get('model', 'oecd').lower()
     skip_climate = request.args.get('skip_climate', 'false').lower() == 'true'
     
-    if not country_input or not sector:
+    if not country_input or not sector_input:
         return jsonify({
             'error': 'Missing required parameters',
             'required': ['country', 'sector'],
@@ -241,9 +241,17 @@ def assess_risk():
         # If not a name, assume it's already a code
         country_code = country_input.upper()
     
+    # Convert sector name to code if needed
+    try:
+        # Try to convert name to code (e.g., "Food products, beverages and tobacco" -> "C10T12")
+        sector_code = sector_name_to_code(sector_input)
+    except ValueError:
+        # If not a name, assume it's already a code
+        sector_code = sector_input.upper()
+    
     try:
         calculator = get_risk_calculator(model_type)
-        result = calculator.assess_risk(country_code, sector, skip_climate=skip_climate)
+        result = calculator.assess_risk(country_code, sector_code, skip_climate=skip_climate)
         
         if result and 'error' in result:
             return jsonify(result), 404
