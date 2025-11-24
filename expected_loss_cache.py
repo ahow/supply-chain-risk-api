@@ -1,4 +1,4 @@
-"""Expected Loss Cache Manager
+"""Expected Loss Cache
 
 Pre-computes and caches expected loss data for all countries to enable
 fast supplier-level expected loss calculations without repeated Climate API calls.
@@ -7,6 +7,7 @@ import json
 import os
 from typing import Dict, Optional
 from climate_api_client import ClimateRiskAPIClient
+from country_codes import get_country_code
 
 
 class ExpectedLossCache:
@@ -53,6 +54,9 @@ class ExpectedLossCache:
     def populate_country(self, country_name: str) -> str:
         """Fetch and cache expected loss data for a single country
         
+        Args:
+            country_name: OECD country name (e.g., "United States")
+        
         Returns:
             'success' - Data fetched and cached
             'skipped' - Country not supported by Climate API
@@ -60,7 +64,16 @@ class ExpectedLossCache:
         """
         print(f"[ExpectedLossCache] Fetching data for {country_name}...")
         
-        data = self.climate_client.get_country_risk(country_name)
+        # Convert country name to ISO-3 code
+        try:
+            country_code = get_country_code(country_name)
+            print(f"[ExpectedLossCache] Using ISO-3 code: {country_code}")
+        except KeyError:
+            print(f"[ExpectedLossCache] No ISO-3 code mapping for {country_name}")
+            return 'failed'
+        
+        # Fetch data using ISO-3 code
+        data = self.climate_client.get_country_risk(country_code)
         
         if data and 'error' not in data:
             # Success - cache the data
