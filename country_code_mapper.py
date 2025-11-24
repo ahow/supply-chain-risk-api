@@ -39,6 +39,30 @@ OECD_ONLY = {
 }
 
 
+# Country name to code mapping for OECD ICIO
+from oecd_icio_data import OECD_ICIO_COUNTRIES
+
+# Build reverse lookup: name -> code
+OECD_NAME_TO_CODE = {country['name']: country['code'] for country in OECD_ICIO_COUNTRIES}
+
+def country_name_to_code(name: str) -> str:
+    """
+    Convert country name to OECD 3-letter code.
+    
+    Args:
+        name: Country name (e.g., "United States", "China")
+        
+    Returns:
+        3-letter OECD code (e.g., "USA", "CHN")
+        
+    Raises:
+        ValueError: If country name not found
+    """
+    if name in OECD_NAME_TO_CODE:
+        return OECD_NAME_TO_CODE[name]
+    else:
+        raise ValueError(f"Country name '{name}' not found in OECD ICIO")
+
 def normalize_country_code(code: str, target_format: str = 'oecd') -> str:
     """
     Normalize country code to target format.
