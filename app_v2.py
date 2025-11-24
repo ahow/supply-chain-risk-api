@@ -215,7 +215,7 @@ def get_sectors():
 @require_api_key
 def assess_risk():
     """Assess supply chain risk for a country-sector using specified model"""
-    country = request.args.get('country', '').upper()
+    country = request.args.get('country', '')  # Keep original case for country names
     sector = request.args.get('sector', '').upper()
     model_type = request.args.get('model', 'oecd').lower()
     skip_climate = request.args.get('skip_climate', 'false').lower() == 'true'
