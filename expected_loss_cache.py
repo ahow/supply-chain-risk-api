@@ -64,15 +64,15 @@ class ExpectedLossCache:
         """
         print(f"[ExpectedLossCache] Fetching data for {country_name}...")
         
-        # Convert country name to ISO-3 code
+        # Convert country name to ISO-3 code for Climate API
         try:
             country_code = get_country_code(country_name)
-            print(f"[ExpectedLossCache] Using ISO-3 code: {country_code}")
+            print(f"[ExpectedLossCache] Using ISO-3 code for Climate API: {country_code}")
         except KeyError:
-            print(f"[ExpectedLossCache] No ISO-3 code mapping for {country_name}")
-            return 'failed'
+            print(f"[ExpectedLossCache] No ISO-3 code mapping for {country_name}, skipping")
+            return 'skipped'  # Regional aggregates don't have ISO codes
         
-        # Fetch data using ISO-3 code
+        # Fetch data using ISO-3 code from Climate API
         data = self.climate_client.get_country_risk(country_code)
         
         if data and 'error' not in data:
