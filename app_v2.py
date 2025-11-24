@@ -392,7 +392,7 @@ def refresh_cache():
         
         job_status = job_manager.start_job(job_id, country_names, force_refresh)
         
-        if 'error' in job_status:
+        if job_status.get('error'):
             return jsonify(job_status), 409  # Conflict - job already running
         
         return jsonify({
