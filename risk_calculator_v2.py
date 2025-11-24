@@ -68,9 +68,17 @@ class MultiTierRiskCalculator:
         
         Uses risk scores from OECD_COUNTRIES and OECD_SECTORS data.
         Maps OECD ICIO sector codes to risk data sector codes if needed.
+        Maps firm splits (CN1/CN2/MX1/MX2) to parent countries for risk lookup.
         """
+        # Map country code for risk lookup (handles firm splits and ISO-3 codes)
+        from country_codes import get_country_code
+        try:
+            risk_country_code = get_country_code(country_code)
+        except KeyError:
+            risk_country_code = country_code  # Use as-is if not in mapping
+        
         # Find country in the risk data
-        country = next((c for c in OECD_COUNTRIES if c['code'] == country_code), None)
+        country = next((c for c in OECD_COUNTRIES if c['code'] == risk_country_code), None)
         
         # Try to map OECD ICIO sector code to risk data sector code
         try:
