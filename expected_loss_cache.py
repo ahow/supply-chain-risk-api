@@ -50,17 +50,30 @@ class ExpectedLossCache:
         self.cache[country_name] = expected_loss_data
         self.save_cache()
     
-    def populate_country(self, country_name: str) -> bool:
-        """Fetch and cache expected loss data for a single country"""
+    def populate_country(self, country_name: str) -> str:
+        """Fetch and cache expected loss data for a single country
+        
+        Returns:
+            'success' - Data fetched and cached
+            'skipped' - Country not supported by Climate API
+            'failed' - API error or timeout
+        """
         print(f"[ExpectedLossCache] Fetching data for {country_name}...")
         
         data = self.climate_client.get_country_risk(country_name)
+        
         if data and 'error' not in data:
+            # Success - cache the data
             self.cache[country_name] = data
-            return True
+            return 'success'
+        elif data and data.get('error') == 'unsupported':
+            # Country not supported by Climate API - skip
+            print(f"[ExpectedLossCache] {country_name} not supported by Climate API")
+            return 'skipped'
         else:
+            # Actual failure (timeout, network error, API error)
             print(f"[ExpectedLossCache] Failed to fetch data for {country_name}")
-            return False
+            return 'failed'
     
     def populate_all(self, country_list: list) -> Dict:
         """Populate cache for all countries in the list

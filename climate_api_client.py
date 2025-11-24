@@ -25,8 +25,12 @@ class ClimateRiskAPIClient:
                 data = response.json()
                 self.cache[country_name] = data
                 return data
+            elif response.status_code == 404:
+                # Country not supported by Climate API
+                return {"error": "unsupported", "status_code": 404}
             else:
-                return {"error": f"API returned status {response.status_code}"}
+                # Other API errors (500, 503, etc.)
+                return {"error": f"API returned status {response.status_code}", "status_code": response.status_code}
         
         except requests.exceptions.Timeout:
             print(f"Climate API timeout for {country_name}")

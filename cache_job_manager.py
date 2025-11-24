@@ -91,12 +91,14 @@ class CacheJobManager:
                     continue
                 
                 # Fetch and cache
-                success = cache.populate_country(country_name)
+                result = cache.populate_country(country_name)
                 
                 with self.lock:
-                    if success:
+                    if result == 'success':
                         self.jobs[job_id]['progress']['success'] += 1
-                    else:
+                    elif result == 'skipped':
+                        self.jobs[job_id]['progress']['skipped'] += 1
+                    else:  # 'failed'
                         self.jobs[job_id]['progress']['failed'] += 1
             
             # Save cache
