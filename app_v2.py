@@ -382,7 +382,7 @@ def refresh_cache():
     
     try:
         # Get OECD model to get list of countries
-        io_model = IOModelFactory.get_model('oecd')
+        io_model = IOModelFactory.create_model('oecd')
         countries = io_model.get_countries()
         country_names = [c.name for c in countries]
         
