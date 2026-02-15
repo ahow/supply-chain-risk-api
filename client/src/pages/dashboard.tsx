@@ -5,6 +5,7 @@ import { RiskRadarChart } from "@/components/risk-radar-chart";
 import { RiskDimensionCards } from "@/components/risk-dimension-cards";
 import { FinancialImpactCard } from "@/components/financial-impact-card";
 import { SupplierTable } from "@/components/supplier-table";
+import { AIAnalysisPanel } from "@/components/ai-analysis-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -188,6 +189,8 @@ export default function Dashboard() {
             </div>
 
             <SupplierTable suppliers={result.top_suppliers} />
+
+            <AIAnalysisPanel assessmentData={result} />
           </div>
         )}
 

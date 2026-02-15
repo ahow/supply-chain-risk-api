@@ -102,3 +102,61 @@ export interface SectorInfo {
   name: string;
   category: string;
 }
+
+export const llmProviders = ["gemini", "claude", "deepseek", "minimax"] as const;
+export type LLMProvider = typeof llmProviders[number];
+
+export interface LLMProviderInfo {
+  id: LLMProvider;
+  name: string;
+  model: string;
+  costPerInputToken: number;
+  costPerOutputToken: number;
+}
+
+export const llmProviderDetails: Record<LLMProvider, LLMProviderInfo> = {
+  gemini: {
+    id: "gemini",
+    name: "Google Gemini",
+    model: "gemini-2.5-flash",
+    costPerInputToken: 0.00000015,
+    costPerOutputToken: 0.0000006,
+  },
+  claude: {
+    id: "claude",
+    name: "Anthropic Claude",
+    model: "claude-sonnet-4-20250514",
+    costPerInputToken: 0.000003,
+    costPerOutputToken: 0.000015,
+  },
+  deepseek: {
+    id: "deepseek",
+    name: "DeepSeek",
+    model: "deepseek-chat",
+    costPerInputToken: 0.00000027,
+    costPerOutputToken: 0.0000011,
+  },
+  minimax: {
+    id: "minimax",
+    name: "MiniMax",
+    model: "MiniMax-M2.5",
+    costPerInputToken: 0.00000015,
+    costPerOutputToken: 0.00000055,
+  },
+};
+
+export interface LLMAnalysisRequest {
+  provider: LLMProvider;
+  assessmentData: AssessmentResponse;
+}
+
+export interface LLMAnalysisResponse {
+  provider: LLMProvider;
+  model: string;
+  analysis: string;
+  responseTimeMs: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCost: number;
+  error?: string;
+}
