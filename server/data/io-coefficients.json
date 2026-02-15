@@ -1,0 +1,268 @@
+{
+  "USA": {
+    "B06": [
+      {"country":"USA","sector":"M","coefficient":0.0475},
+      {"country":"USA","sector":"C19","coefficient":0.0385},
+      {"country":"USA","sector":"K64","coefficient":0.0312},
+      {"country":"CAN","sector":"B06","coefficient":0.0285},
+      {"country":"USA","sector":"H49","coefficient":0.0245},
+      {"country":"USA","sector":"F","coefficient":0.0198},
+      {"country":"MEX","sector":"B06","coefficient":0.0175},
+      {"country":"SAU","sector":"B06","coefficient":0.0152},
+      {"country":"USA","sector":"C20","coefficient":0.0142},
+      {"country":"USA","sector":"D35","coefficient":0.0128}
+    ],
+    "C29": [
+      {"country":"USA","sector":"C24","coefficient":0.0525},
+      {"country":"USA","sector":"C22","coefficient":0.0412},
+      {"country":"USA","sector":"C27","coefficient":0.0385},
+      {"country":"DEU","sector":"C29","coefficient":0.0345},
+      {"country":"JPN","sector":"C29","coefficient":0.0315},
+      {"country":"MEX","sector":"C29","coefficient":0.0298},
+      {"country":"USA","sector":"M","coefficient":0.0265},
+      {"country":"CAN","sector":"C24","coefficient":0.0232},
+      {"country":"CHN","sector":"C24","coefficient":0.0198},
+      {"country":"KOR","sector":"C26","coefficient":0.0175}
+    ],
+    "C26": [
+      {"country":"CHN","sector":"C26","coefficient":0.0685},
+      {"country":"USA","sector":"M","coefficient":0.0445},
+      {"country":"TWN","sector":"C26","coefficient":0.0415},
+      {"country":"KOR","sector":"C26","coefficient":0.0385},
+      {"country":"JPN","sector":"C26","coefficient":0.0325},
+      {"country":"USA","sector":"K64","coefficient":0.0285},
+      {"country":"USA","sector":"J62-J63","coefficient":0.0245},
+      {"country":"MYS","sector":"C26","coefficient":0.0198},
+      {"country":"VNM","sector":"C26","coefficient":0.0165},
+      {"country":"SGP","sector":"C26","coefficient":0.0142}
+    ],
+    "C10-C12": [
+      {"country":"USA","sector":"A01","coefficient":0.0825},
+      {"country":"USA","sector":"G46","coefficient":0.0445},
+      {"country":"BRA","sector":"A01","coefficient":0.0365},
+      {"country":"MEX","sector":"A01","coefficient":0.0285},
+      {"country":"USA","sector":"C20","coefficient":0.0245},
+      {"country":"CAN","sector":"A01","coefficient":0.0215},
+      {"country":"USA","sector":"H49","coefficient":0.0185},
+      {"country":"USA","sector":"D35","coefficient":0.0165},
+      {"country":"ARG","sector":"A01","coefficient":0.0142},
+      {"country":"USA","sector":"C17-C18","coefficient":0.0128}
+    ],
+    "C13-C15": [
+      {"country":"CHN","sector":"C13-C15","coefficient":0.0945},
+      {"country":"VNM","sector":"C13-C15","coefficient":0.0625},
+      {"country":"BGD","sector":"C13-C15","coefficient":0.0485},
+      {"country":"IND","sector":"C13-C15","coefficient":0.0425},
+      {"country":"USA","sector":"G46","coefficient":0.0285},
+      {"country":"USA","sector":"M","coefficient":0.0215},
+      {"country":"IDN","sector":"C13-C15","coefficient":0.0185},
+      {"country":"THA","sector":"C13-C15","coefficient":0.0165},
+      {"country":"KHM","sector":"C13-C15","coefficient":0.0145},
+      {"country":"PAK","sector":"C13-C15","coefficient":0.0125}
+    ],
+    "M": [
+      {"country":"USA","sector":"J62-J63","coefficient":0.0585},
+      {"country":"USA","sector":"K64","coefficient":0.0425},
+      {"country":"USA","sector":"L68","coefficient":0.0365},
+      {"country":"GBR","sector":"M","coefficient":0.0245},
+      {"country":"IND","sector":"J62-J63","coefficient":0.0215},
+      {"country":"USA","sector":"J61","coefficient":0.0185},
+      {"country":"CAN","sector":"M","coefficient":0.0165},
+      {"country":"DEU","sector":"M","coefficient":0.0142},
+      {"country":"USA","sector":"H49","coefficient":0.0128},
+      {"country":"IRL","sector":"M","coefficient":0.0112}
+    ]
+  },
+  "CHN": {
+    "C26": [
+      {"country":"CHN","sector":"C24","coefficient":0.0625},
+      {"country":"CHN","sector":"C20","coefficient":0.0485},
+      {"country":"KOR","sector":"C26","coefficient":0.0425},
+      {"country":"TWN","sector":"C26","coefficient":0.0385},
+      {"country":"JPN","sector":"C26","coefficient":0.0345},
+      {"country":"CHN","sector":"D35","coefficient":0.0285},
+      {"country":"CHN","sector":"M","coefficient":0.0245},
+      {"country":"USA","sector":"C26","coefficient":0.0185},
+      {"country":"MYS","sector":"C26","coefficient":0.0165},
+      {"country":"CHN","sector":"H49","coefficient":0.0142}
+    ],
+    "C13-C15": [
+      {"country":"CHN","sector":"A01","coefficient":0.0585},
+      {"country":"CHN","sector":"C20","coefficient":0.0425},
+      {"country":"CHN","sector":"D35","coefficient":0.0345},
+      {"country":"IND","sector":"C13-C15","coefficient":0.0285},
+      {"country":"CHN","sector":"H49","coefficient":0.0245},
+      {"country":"VNM","sector":"C13-C15","coefficient":0.0215},
+      {"country":"BGD","sector":"C13-C15","coefficient":0.0185},
+      {"country":"PAK","sector":"C13-C15","coefficient":0.0162},
+      {"country":"CHN","sector":"G46","coefficient":0.0142},
+      {"country":"IDN","sector":"C13-C15","coefficient":0.0125}
+    ],
+    "C29": [
+      {"country":"CHN","sector":"C24","coefficient":0.0685},
+      {"country":"CHN","sector":"C22","coefficient":0.0485},
+      {"country":"CHN","sector":"C27","coefficient":0.0425},
+      {"country":"JPN","sector":"C29","coefficient":0.0285},
+      {"country":"DEU","sector":"C29","coefficient":0.0245},
+      {"country":"KOR","sector":"C29","coefficient":0.0215},
+      {"country":"CHN","sector":"D35","coefficient":0.0185},
+      {"country":"CHN","sector":"M","coefficient":0.0165},
+      {"country":"USA","sector":"C29","coefficient":0.0142},
+      {"country":"CHN","sector":"H49","coefficient":0.0128}
+    ]
+  },
+  "DEU": {
+    "C29": [
+      {"country":"DEU","sector":"C24","coefficient":0.0585},
+      {"country":"DEU","sector":"C22","coefficient":0.0445},
+      {"country":"DEU","sector":"C27","coefficient":0.0412},
+      {"country":"CZE","sector":"C29","coefficient":0.0325},
+      {"country":"POL","sector":"C29","coefficient":0.0285},
+      {"country":"USA","sector":"C29","coefficient":0.0245},
+      {"country":"CHN","sector":"C24","coefficient":0.0215},
+      {"country":"DEU","sector":"M","coefficient":0.0198},
+      {"country":"HUN","sector":"C29","coefficient":0.0175},
+      {"country":"ESP","sector":"C29","coefficient":0.0155}
+    ],
+    "C20": [
+      {"country":"DEU","sector":"B06","coefficient":0.0485},
+      {"country":"NLD","sector":"C20","coefficient":0.0385},
+      {"country":"DEU","sector":"D35","coefficient":0.0325},
+      {"country":"BEL","sector":"C20","coefficient":0.0285},
+      {"country":"USA","sector":"C20","coefficient":0.0245},
+      {"country":"RUS","sector":"B06","coefficient":0.0215},
+      {"country":"CHN","sector":"C20","coefficient":0.0185},
+      {"country":"FRA","sector":"C20","coefficient":0.0165},
+      {"country":"DEU","sector":"M","coefficient":0.0142},
+      {"country":"GBR","sector":"C20","coefficient":0.0125}
+    ],
+    "C28": [
+      {"country":"DEU","sector":"C24","coefficient":0.0525},
+      {"country":"DEU","sector":"C27","coefficient":0.0425},
+      {"country":"DEU","sector":"M","coefficient":0.0345},
+      {"country":"CHN","sector":"C28","coefficient":0.0285},
+      {"country":"ITA","sector":"C28","coefficient":0.0245},
+      {"country":"USA","sector":"C28","coefficient":0.0215},
+      {"country":"JPN","sector":"C28","coefficient":0.0185},
+      {"country":"CZE","sector":"C28","coefficient":0.0165},
+      {"country":"POL","sector":"C24","coefficient":0.0142},
+      {"country":"AUT","sector":"C28","coefficient":0.0125}
+    ]
+  },
+  "GBR": {
+    "K64": [
+      {"country":"GBR","sector":"M","coefficient":0.0585},
+      {"country":"GBR","sector":"J62-J63","coefficient":0.0445},
+      {"country":"USA","sector":"K64","coefficient":0.0385},
+      {"country":"GBR","sector":"L68","coefficient":0.0325},
+      {"country":"IRL","sector":"K64","coefficient":0.0265},
+      {"country":"GBR","sector":"K65","coefficient":0.0225},
+      {"country":"DEU","sector":"K64","coefficient":0.0195},
+      {"country":"FRA","sector":"K64","coefficient":0.0175},
+      {"country":"CHE","sector":"K64","coefficient":0.0155},
+      {"country":"NLD","sector":"K64","coefficient":0.0135}
+    ],
+    "C21": [
+      {"country":"USA","sector":"C21","coefficient":0.0545},
+      {"country":"CHE","sector":"C21","coefficient":0.0425},
+      {"country":"GBR","sector":"M","coefficient":0.0365},
+      {"country":"DEU","sector":"C21","coefficient":0.0285},
+      {"country":"IRL","sector":"C21","coefficient":0.0245},
+      {"country":"FRA","sector":"C21","coefficient":0.0215},
+      {"country":"IND","sector":"C21","coefficient":0.0185},
+      {"country":"GBR","sector":"C20","coefficient":0.0165},
+      {"country":"BEL","sector":"C21","coefficient":0.0142},
+      {"country":"JPN","sector":"C21","coefficient":0.0125}
+    ]
+  },
+  "JPN": {
+    "C29": [
+      {"country":"JPN","sector":"C24","coefficient":0.0625},
+      {"country":"JPN","sector":"C22","coefficient":0.0485},
+      {"country":"JPN","sector":"C27","coefficient":0.0425},
+      {"country":"CHN","sector":"C24","coefficient":0.0345},
+      {"country":"USA","sector":"C29","coefficient":0.0285},
+      {"country":"KOR","sector":"C24","coefficient":0.0245},
+      {"country":"THA","sector":"C29","coefficient":0.0215},
+      {"country":"JPN","sector":"M","coefficient":0.0185},
+      {"country":"IDN","sector":"C24","coefficient":0.0165},
+      {"country":"JPN","sector":"D35","coefficient":0.0142}
+    ],
+    "C26": [
+      {"country":"CHN","sector":"C26","coefficient":0.0585},
+      {"country":"TWN","sector":"C26","coefficient":0.0485},
+      {"country":"KOR","sector":"C26","coefficient":0.0425},
+      {"country":"JPN","sector":"C20","coefficient":0.0345},
+      {"country":"JPN","sector":"C24","coefficient":0.0285},
+      {"country":"USA","sector":"C26","coefficient":0.0245},
+      {"country":"JPN","sector":"M","coefficient":0.0215},
+      {"country":"MYS","sector":"C26","coefficient":0.0185},
+      {"country":"JPN","sector":"D35","coefficient":0.0165},
+      {"country":"PHL","sector":"C26","coefficient":0.0142}
+    ]
+  },
+  "IND": {
+    "C13-C15": [
+      {"country":"IND","sector":"A01","coefficient":0.0785},
+      {"country":"IND","sector":"C20","coefficient":0.0445},
+      {"country":"CHN","sector":"C13-C15","coefficient":0.0345},
+      {"country":"IND","sector":"D35","coefficient":0.0285},
+      {"country":"BGD","sector":"C13-C15","coefficient":0.0245},
+      {"country":"IND","sector":"H49","coefficient":0.0215},
+      {"country":"PAK","sector":"C13-C15","coefficient":0.0185},
+      {"country":"IND","sector":"G46","coefficient":0.0165},
+      {"country":"VNM","sector":"C13-C15","coefficient":0.0142},
+      {"country":"IND","sector":"M","coefficient":0.0125}
+    ],
+    "J62-J63": [
+      {"country":"IND","sector":"J61","coefficient":0.0485},
+      {"country":"USA","sector":"J62-J63","coefficient":0.0425},
+      {"country":"IND","sector":"M","coefficient":0.0365},
+      {"country":"IND","sector":"L68","coefficient":0.0285},
+      {"country":"GBR","sector":"J62-J63","coefficient":0.0245},
+      {"country":"IND","sector":"D35","coefficient":0.0215},
+      {"country":"IND","sector":"K64","coefficient":0.0185},
+      {"country":"DEU","sector":"J62-J63","coefficient":0.0155},
+      {"country":"SGP","sector":"J62-J63","coefficient":0.0135},
+      {"country":"IND","sector":"P","coefficient":0.0118}
+    ]
+  },
+  "BRA": {
+    "A01": [
+      {"country":"BRA","sector":"C20","coefficient":0.0685},
+      {"country":"BRA","sector":"D35","coefficient":0.0385},
+      {"country":"BRA","sector":"H49","coefficient":0.0325},
+      {"country":"USA","sector":"C20","coefficient":0.0265},
+      {"country":"BRA","sector":"K64","coefficient":0.0225},
+      {"country":"BRA","sector":"M","coefficient":0.0195},
+      {"country":"CHN","sector":"C20","coefficient":0.0175},
+      {"country":"DEU","sector":"C28","coefficient":0.0155},
+      {"country":"BRA","sector":"G46","coefficient":0.0135},
+      {"country":"ARG","sector":"A01","coefficient":0.0118}
+    ],
+    "B06": [
+      {"country":"BRA","sector":"M","coefficient":0.0425},
+      {"country":"BRA","sector":"D35","coefficient":0.0345},
+      {"country":"BRA","sector":"H49","coefficient":0.0285},
+      {"country":"USA","sector":"C28","coefficient":0.0245},
+      {"country":"BRA","sector":"K64","coefficient":0.0215},
+      {"country":"CHN","sector":"C28","coefficient":0.0185},
+      {"country":"BRA","sector":"F","coefficient":0.0165},
+      {"country":"DEU","sector":"C28","coefficient":0.0145},
+      {"country":"BRA","sector":"C20","coefficient":0.0128},
+      {"country":"BRA","sector":"C24","coefficient":0.0112}
+    ]
+  },
+  "_default": [
+    {"country":"USA","sector":"M","coefficient":0.0385},
+    {"country":"CHN","sector":"C24","coefficient":0.0325},
+    {"country":"DEU","sector":"C28","coefficient":0.0265},
+    {"country":"JPN","sector":"C26","coefficient":0.0225},
+    {"country":"GBR","sector":"K64","coefficient":0.0195},
+    {"country":"KOR","sector":"C26","coefficient":0.0175},
+    {"country":"FRA","sector":"C20","coefficient":0.0155},
+    {"country":"IND","sector":"J62-J63","coefficient":0.0135},
+    {"country":"CAN","sector":"B06","coefficient":0.0118},
+    {"country":"ITA","sector":"C28","coefficient":0.0105}
+  ]
+}
