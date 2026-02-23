@@ -36,6 +36,7 @@ A production-grade fullstack application that quantifies multi-dimensional suppl
 - **GitHub**: https://github.com/ahow/supply-chain-risk-api
 - **Heroku**: https://supply-chain-risk-api-7567b2b7e4c5.herokuapp.com
 - Deploy script: `node script/deploy.mjs` — pushes to GitHub and triggers Heroku build
+- GitHub Actions workflow: `.github/workflows/deploy.yml` — auto-deploys to Heroku on push to main
 - Secrets required: GITHUB_PAT, HEROKU_API_KEY
 - Buildpack: heroku/nodejs
 - Procfile: `web: npm run start`
@@ -43,6 +44,7 @@ A production-grade fullstack application that quantifies multi-dimensional suppl
 
 ## Recent Changes
 - 2026-02-23: Added GitHub sync + Heroku deployment pipeline (script/deploy.mjs)
+- 2026-02-23: Added GitHub Actions auto-deploy to Heroku on push to main
 - 2026-02-15: Added multi-LLM AI analysis integration (Gemini, Claude, DeepSeek, MiniMax) with cost/speed comparison
 - 2026-02-15: Full rebuild in Node.js/Express/React stack
 - Risk calculator with OECD I-O coefficient modeling
