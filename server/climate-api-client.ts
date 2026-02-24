@@ -3,7 +3,7 @@ import type { ExpectedLoss } from "@shared/schema";
 const CLIMATE_API_BASE = "https://climate-risk-api-v6-prob-be68437e49be.herokuapp.com";
 const ASSET_VALUE = 1_000_000;
 const CACHE_TTL_MS = 60 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = 35_000;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 interface ClimateApiResponse {
   expected_annual_loss: number;

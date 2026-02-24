@@ -222,14 +222,36 @@ export async function assessRisk(
 
   const lossMap = new Map<string, ExpectedLoss | undefined>();
   if (!skipClimate) {
-    const results = await Promise.all(
-      Array.from(allCountries).map(async (code) => {
+    const BATCH_TIMEOUT_MS = 20_000;
+    const countryCodes = Array.from(allCountries);
+
+    const batchPromise = Promise.all(
+      countryCodes.map(async (code) => {
         const loss = await getExpectedLossForCountry(code);
         return { code, loss };
       })
     );
-    for (const { code, loss } of results) {
-      lossMap.set(code, loss);
+
+    const timeoutPromise = new Promise<null>((resolve) =>
+      setTimeout(() => {
+        console.log(`[Risk Calculator] Climate batch timeout (${BATCH_TIMEOUT_MS}ms) — using fallback data for remaining countries`);
+        resolve(null);
+      }, BATCH_TIMEOUT_MS)
+    );
+
+    const results = await Promise.race([batchPromise, timeoutPromise]);
+
+    if (results) {
+      for (const { code, loss } of results) {
+        lossMap.set(code, loss);
+      }
+    }
+
+    for (const code of countryCodes) {
+      if (!lossMap.has(code)) {
+        const staticLoss = getStaticExpectedLoss(code);
+        lossMap.set(code, staticLoss);
+      }
     }
   }
 

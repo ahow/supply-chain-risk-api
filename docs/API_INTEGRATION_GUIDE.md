@@ -8,7 +8,7 @@ https://supply-chain-risk-api-7567b2b7e4c5.herokuapp.com
 
 ## Overview
 
-This API quantifies multi-dimensional supply chain risk exposure for any country-sector combination. It integrates 5 risk dimensions with OECD Input-Output economic modeling to assess both direct operational risk and indirect (upstream supply chain) risk.
+This API quantifies multi-dimensional supply chain risk exposure for any country-sector combination. It integrates 5 risk dimensions with OECD Input-Output economic modeling and a **3-tier supply chain model** to assess both direct operational risk and indirect (upstream supply chain) risk across multiple layers of the supply chain.
 
 The 5 risk dimensions are:
 - **Climate** - physical climate hazard exposure
@@ -18,6 +18,20 @@ The 5 risk dimensions are:
 - **Nature Loss** - biodiversity and ecosystem degradation risk
 
 All risk scores are on a scale of **0 to 5**, where 0 = lowest risk and 5 = highest risk.
+
+### Multi-Tier Supply Chain Model
+
+The API traces supply chain exposure through 3 tiers using OECD Input-Output coefficient tables:
+
+| Tier | Description | Weight |
+|------|-------------|--------|
+| Tier 1 | Direct suppliers — the immediate upstream inputs to the queried country-sector | 50% |
+| Tier 2 | Sub-suppliers — suppliers to Tier 1 suppliers, identified by cascading I-O lookups | 35% |
+| Tier 3 | Deep supply chain — suppliers to Tier 2 suppliers, one further level deep | 15% |
+
+For each tier, supplier I-O coefficients are normalised within that tier to compute coefficient-weighted risk scores. The overall **indirect risk** is the weighted combination of all three tiers' risk scores. The **total risk** blends 60% direct risk + 40% indirect risk.
+
+Duplicate country-sector pairs across tiers are deduplicated using the maximum coefficient.
 
 ## Authentication
 
@@ -173,26 +187,28 @@ GET /api/assess?country={ISO3_CODE}&sector={ISIC_CODE}
 
 **Parameters:**
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
-| country   | string | Yes      | ISO-3166 alpha-3 country code (e.g., USA, GBR, CHN) |
-| sector    | string | Yes      | ISIC Rev.4 sector code (e.g., B06, C20, K64) |
+| Parameter | Type   | Required | Default | Description |
+|-----------|--------|----------|---------|-------------|
+| country   | string | Yes      | -       | ISO-3166 alpha-3 country code (e.g., USA, GBR, CHN) |
+| sector    | string | Yes      | -       | ISIC Rev.4 sector code (e.g., B06, C20, K64) |
+| skip_climate | boolean | No  | false   | Set to `true` to skip live climate data (faster response) |
+| top_n     | integer | No     | 5       | Number of suppliers per tier (1-20) |
 
 **Example Request:**
 ```
-GET /api/assess?country=USA&sector=B06
+GET /api/assess?country=USA&sector=C26
 ```
 
 **Response Structure:**
 
-> **Note:** Climate expected loss data is now sourced **live** from the Climate Risk API V6 (Probabilistic Model), which uses real scientific datasets (NOAA IBTrACS, WRI Aqueduct, HadEX3). If the Climate API is temporarily unavailable, the system falls back to pre-computed static values. Results are cached for 1 hour per country to optimize response times.
+> **Note:** Climate expected loss data is sourced **live** from the Climate Risk API V6 (Probabilistic Model), which uses real scientific datasets (NOAA IBTrACS, WRI Aqueduct, HadEX3). If the Climate API is temporarily unavailable, the system falls back to pre-computed static values. Results are cached for 1 hour per country to optimise response times.
 
 ```json
 {
   "country": "USA",
   "country_name": "United States",
-  "sector": "B06",
-  "sector_name": "Mining and quarrying",
+  "sector": "C26",
+  "sector_name": "Computer, electronic and optical products",
 
   "direct_risk": {
     "climate": 2.74,
@@ -215,51 +231,108 @@ GET /api/assess?country=USA&sector=B06
   },
 
   "indirect_risk": {
-    "climate": 2.64,
-    "modern_slavery": 2.06,
-    "political": 1.99,
-    "water_stress": 2.54,
-    "nature_loss": 2.55,
+    "climate": 2.97,
+    "modern_slavery": 2.46,
+    "political": 2.29,
+    "water_stress": 3.11,
+    "nature_loss": 2.84,
     "expected_loss": {
-      "total_annual_loss": 92758.11,
-      "total_annual_loss_pct": 9.28
+      "total_annual_loss": 100121.40,
+      "total_annual_loss_pct": 10.01
     }
   },
 
   "total_risk": {
-    "climate": 2.70,
-    "modern_slavery": 2.16,
-    "political": 2.10,
-    "water_stress": 2.67,
-    "nature_loss": 2.59
+    "climate": 2.83,
+    "modern_slavery": 2.32,
+    "political": 2.22,
+    "water_stress": 2.90,
+    "nature_loss": 2.70
   },
 
-  "top_suppliers": [
+  "supply_chain_tiers": [
     {
-      "country": "USA",
-      "sector": "M",
-      "coefficient": 0.0475,
-      "country_name": "United States",
-      "sector_name": "Professional, scientific and technical activities",
-      "direct_risk": {
-        "climate": 2.74,
-        "modern_slavery": 2.22,
-        "political": 2.18,
-        "water_stress": 2.76,
-        "nature_loss": 2.61
+      "tier": 1,
+      "weight": 0.50,
+      "supplier_count": 5,
+      "risk": {
+        "climate": 3.02,
+        "modern_slavery": 2.48,
+        "political": 2.38,
+        "water_stress": 3.20,
+        "nature_loss": 2.87
       },
-      "risk_contribution": {
-        "climate": 0.7647,
-        "modern_slavery": 0.6196,
-        "political": 0.6084,
-        "water_stress": 0.7703,
-        "nature_loss": 0.7284
+      "expected_loss": {
+        "total_annual_loss": 91127.86,
+        "total_annual_loss_pct": 9.11
       },
-      "expected_loss_contribution": {
-        "annual_loss": 28155.67,
-        "present_value_30yr": 432579
-      }
+      "suppliers": [
+        {
+          "country": "CHN",
+          "sector": "C26",
+          "coefficient": 0.0685,
+          "country_name": "China",
+          "sector_name": "Computer, electronic and optical products",
+          "tier": 1,
+          "direct_risk": {
+            "climate": 3.12,
+            "modern_slavery": 3.85,
+            "political": 3.42,
+            "water_stress": 3.95,
+            "nature_loss": 3.78
+          },
+          "risk_contribution": {
+            "climate": 0.9415,
+            "modern_slavery": 1.1614,
+            "political": 1.0317,
+            "water_stress": 1.1916,
+            "nature_loss": 1.1403
+          },
+          "expected_loss_contribution": {
+            "annual_loss": 10226.55,
+            "present_value_30yr": 157166
+          }
+        }
+      ]
+    },
+    {
+      "tier": 2,
+      "weight": 0.35,
+      "supplier_count": 16,
+      "risk": {
+        "climate": 2.92,
+        "modern_slavery": 2.48,
+        "political": 2.26,
+        "water_stress": 3.06,
+        "nature_loss": 2.84
+      },
+      "expected_loss": {
+        "total_annual_loss": 107892.65,
+        "total_annual_loss_pct": 10.79
+      },
+      "suppliers": ["...suppliers array..."]
+    },
+    {
+      "tier": 3,
+      "weight": 0.15,
+      "supplier_count": 20,
+      "risk": {
+        "climate": 2.89,
+        "modern_slavery": 2.35,
+        "political": 2.06,
+        "water_stress": 2.92,
+        "nature_loss": 2.73
+      },
+      "expected_loss": {
+        "total_annual_loss": 111966.95,
+        "total_annual_loss_pct": 11.20
+      },
+      "suppliers": ["...suppliers array..."]
     }
+  ],
+
+  "top_suppliers": [
+    "...flat list of all suppliers across all tiers, each with a 'tier' field..."
   ]
 }
 ```
@@ -269,18 +342,35 @@ GET /api/assess?country=USA&sector=B06
 | Field | Description |
 |-------|-------------|
 | `direct_risk` | Risk scores for the country where the company operates directly |
-| `direct_risk.expected_loss` | Financial loss estimates from physical hazards (USD millions) |
-| `direct_risk.expected_loss.total_annual_loss` | Total expected annual loss in USD millions |
-| `direct_risk.expected_loss.total_annual_loss_pct` | Annual loss as percentage of GDP |
-| `direct_risk.expected_loss.present_value_30yr` | Present value of losses over 30 years (USD millions) |
-| `direct_risk.expected_loss.risk_breakdown` | Loss decomposed by hazard type |
-| `indirect_risk` | Weighted average risk from upstream supply chain (I-O model) |
-| `indirect_risk.expected_loss` | Aggregated expected loss from all upstream suppliers |
-| `total_risk` | Blended score combining direct and indirect risk |
-| `top_suppliers` | Top 5 upstream sector-country pairs by I-O coefficient |
+| `direct_risk.expected_loss` | Financial loss estimates from physical climate hazards per $1M asset exposure |
+| `direct_risk.expected_loss.total_annual_loss` | Total expected annual loss in USD per $1M exposure |
+| `direct_risk.expected_loss.total_annual_loss_pct` | Annual loss as percentage of exposure |
+| `direct_risk.expected_loss.present_value_30yr` | Present value of losses over 30 years (USD) |
+| `direct_risk.expected_loss.risk_breakdown` | Loss decomposed by hazard type (hurricane, flood, heat stress, drought, extreme precipitation) |
+| `indirect_risk` | Weighted average risk from upstream supply chain across all 3 tiers |
+| `indirect_risk.expected_loss` | Aggregated expected loss from all upstream suppliers (tier-weighted) |
+| `total_risk` | Blended score: 60% direct + 40% indirect |
+| `supply_chain_tiers` | Array of 3 tier objects with per-tier risk, expected loss, and supplier detail |
+| `supply_chain_tiers[].tier` | Tier number (1, 2, or 3) |
+| `supply_chain_tiers[].weight` | Weight applied to this tier (0.50, 0.35, or 0.15) |
+| `supply_chain_tiers[].supplier_count` | Number of distinct suppliers in this tier |
+| `supply_chain_tiers[].risk` | Coefficient-weighted average risk scores for this tier |
+| `supply_chain_tiers[].expected_loss` | Aggregated expected loss across suppliers in this tier |
+| `supply_chain_tiers[].suppliers` | Array of supplier objects in this tier |
+| `top_suppliers` | Flat list of all suppliers across all 3 tiers |
+| `top_suppliers[].tier` | Which tier this supplier belongs to (1, 2, or 3) |
 | `top_suppliers[].coefficient` | OECD I-O coefficient (share of inputs from this supplier) |
-| `top_suppliers[].risk_contribution` | Absolute risk contributed by this supplier to indirect risk |
-| `top_suppliers[].expected_loss_contribution` | Financial loss attributed to this supplier relationship |
+| `top_suppliers[].direct_risk` | The supplier's own country-level risk scores |
+| `top_suppliers[].risk_contribution` | Risk contributed by this supplier (coefficient-weighted within its tier) |
+| `top_suppliers[].expected_loss_contribution` | Financial loss attributed to this supplier (annual and 30-year PV) |
+
+### How Indirect Risk is Calculated
+
+1. For each tier, supplier coefficients are normalised (summed to 1.0 within the tier)
+2. Each supplier's risk scores are multiplied by their normalised coefficient
+3. The tier-level risk is the sum of all coefficient-weighted supplier risks
+4. The overall indirect risk = (Tier 1 risk × 0.50) + (Tier 2 risk × 0.35) + (Tier 3 risk × 0.15)
+5. Total risk = (Direct risk × 0.60) + (Indirect risk × 0.40)
 
 ---
 
@@ -301,10 +391,25 @@ def get_risk_assessment(country_iso3: str, sector_isic: str) -> dict:
     response.raise_for_status()
     return response.json()
 
-# Example: Assess mining risk in the USA
-result = get_risk_assessment("USA", "B06")
+# Example: Assess electronics supply chain risk for a US company
+result = get_risk_assessment("USA", "C26")
+
+# Overall risk
 print(f"Total climate risk: {result['total_risk']['climate']}")
-print(f"Annual expected loss: ${result['direct_risk']['expected_loss']['total_annual_loss']:,.0f}M")
+print(f"Direct expected annual loss: ${result['direct_risk']['expected_loss']['total_annual_loss']:,.0f}")
+
+# Supply chain tier breakdown
+for tier in result['supply_chain_tiers']:
+    avg_risk = sum(tier['risk'].values()) / 5
+    print(f"Tier {tier['tier']} ({tier['weight']*100:.0f}% weight): "
+          f"{tier['supplier_count']} suppliers, avg risk {avg_risk:.2f}")
+    if tier['expected_loss']:
+        print(f"  Expected annual loss: ${tier['expected_loss']['total_annual_loss']:,.0f}")
+
+# Top suppliers by tier
+for supplier in result['top_suppliers']:
+    print(f"  T{supplier['tier']}: {supplier['country_name']} - "
+          f"{supplier['sector_name']} (coeff: {supplier['coefficient']:.4f})")
 ```
 
 ### JavaScript / TypeScript
@@ -320,10 +425,22 @@ async function getRiskAssessment(country, sector) {
   return response.json();
 }
 
-// Example: Assess pharmaceutical risk in India
-const result = await getRiskAssessment("IND", "C21");
+// Example: Assess electronics supply chain risk for a US company
+const result = await getRiskAssessment("USA", "C26");
+
+// Overall risk
 console.log("Total risk:", result.total_risk);
-console.log("Top supplier:", result.top_suppliers[0].country_name);
+console.log("Indirect supply chain risk:", result.indirect_risk);
+
+// Tier-level breakdown
+for (const tier of result.supply_chain_tiers) {
+  console.log(`Tier ${tier.tier} (${tier.weight * 100}% weight):`);
+  console.log(`  Suppliers: ${tier.supplier_count}`);
+  console.log(`  Risk:`, tier.risk);
+  if (tier.expected_loss) {
+    console.log(`  Expected annual loss: $${tier.expected_loss.total_annual_loss.toLocaleString()}`);
+  }
+}
 ```
 
 ### ISIN-to-Assessment Workflow (Python)
@@ -343,6 +460,14 @@ country_code = isin_to_iso3(isin)  # Returns "USA"
 sector_code = "C26"  # Computer, electronic and optical products
 
 assessment = get_risk_assessment(country_code, sector_code)
+
+# Examine supply chain tiers
+for tier in assessment['supply_chain_tiers']:
+    print(f"Tier {tier['tier']}: {tier['supplier_count']} suppliers")
+    for supplier in tier['suppliers']:
+        print(f"  {supplier['country_name']} / {supplier['sector_name']} "
+              f"- coeff: {supplier['coefficient']:.4f}, "
+              f"climate: {supplier['direct_risk']['climate']:.2f}")
 ```
 
 ---
@@ -371,9 +496,9 @@ The `expected_loss` fields in the response are sourced **live** from the [Climat
 
 | Data Source | Coverage | Description |
 |-------------|----------|-------------|
-| NOAA IBTrACS | 131,076 hurricane records (2004–2024) | Global tropical cyclone basin data |
+| NOAA IBTrACS | 131,076 hurricane records (2004-2024) | Global tropical cyclone basin data |
 | WRI Aqueduct | 7,473 flood grid points, 7 return periods | Global flood risk modeling |
-| HadEX3 | Temperature + precipitation extremes | Global land, 2.5° grid (GEV/Gamma distributions) |
+| HadEX3 | Temperature + precipitation extremes | Global land, 2.5 deg grid (GEV/Gamma distributions) |
 
 **How it works:**
 1. When a risk assessment is requested, the supply chain API calls the Climate Risk API's country endpoint with `asset_value = $1,000,000`
@@ -381,13 +506,13 @@ The `expected_loss` fields in the response are sourced **live** from the [Climat
 3. Results are cached for 1 hour per country to reduce response times on subsequent requests
 4. If the Climate API is temporarily unavailable (e.g., cold start, maintenance), the system falls back to pre-computed static values
 
-**Response time impact:** The first request for a given country takes 20–30 seconds (Climate API processing time). Subsequent requests within the 1-hour cache window return in <100ms.
+**Response time impact:** The first request for a given country takes 20-30 seconds (Climate API processing time). Subsequent requests within the 1-hour cache window return in <100ms. Use `skip_climate=true` to bypass climate data entirely for faster responses.
 
 ---
 
 ## Rate Limits
 
-No rate limits are currently enforced. Note that the first request for each country may take 20–30 seconds due to the live Climate Risk API call. For bulk assessments, results are cached for 1 hour, so subsequent requests for the same country will be fast.
+No rate limits are currently enforced. Note that the first request for each country may take 20-30 seconds due to the live Climate Risk API call. For bulk assessments, results are cached for 1 hour, so subsequent requests for the same country will be fast.
 
 ## Availability
 
@@ -398,5 +523,6 @@ The API runs on a Heroku Basic dyno and is available 24/7 with no scheduled down
 - **85 countries** across all major economic regions
 - **52 sectors** based on ISIC Rev.4 classification
 - **5 risk dimensions** per country
+- **3-tier supply chain model** with I-O coefficient cascading (Tier 1: 50%, Tier 2: 35%, Tier 3: 15%)
 - **OECD I-O coefficients** for upstream supply chain modeling
 - **Live climate data** from NOAA, WRI Aqueduct, and HadEX3 via Climate Risk API V6
