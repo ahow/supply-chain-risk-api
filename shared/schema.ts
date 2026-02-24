@@ -56,12 +56,25 @@ export const supplierSchema = z.object({
   coefficient: z.number(),
   country_name: z.string(),
   sector_name: z.string(),
+  tier: z.number(),
   direct_risk: riskContributionSchema,
   risk_contribution: riskContributionSchema,
   expected_loss_contribution: z.object({
     annual_loss: z.number(),
     present_value_30yr: z.number(),
   }).optional(),
+});
+
+export const tierSummarySchema = z.object({
+  tier: z.number(),
+  weight: z.number(),
+  supplier_count: z.number(),
+  risk: riskContributionSchema,
+  expected_loss: z.object({
+    total_annual_loss: z.number(),
+    total_annual_loss_pct: z.number(),
+  }).optional(),
+  suppliers: z.array(supplierSchema),
 });
 
 export const assessmentResponseSchema = z.object({
@@ -72,6 +85,7 @@ export const assessmentResponseSchema = z.object({
   direct_risk: directRiskSchema,
   indirect_risk: indirectRiskSchema,
   total_risk: riskContributionSchema,
+  supply_chain_tiers: z.array(tierSummarySchema),
   top_suppliers: z.array(supplierSchema),
 });
 
@@ -88,6 +102,7 @@ export type DirectRisk = z.infer<typeof directRiskSchema>;
 export type IndirectRisk = z.infer<typeof indirectRiskSchema>;
 export type RiskContribution = z.infer<typeof riskContributionSchema>;
 export type Supplier = z.infer<typeof supplierSchema>;
+export type TierSummary = z.infer<typeof tierSummarySchema>;
 export type AssessmentResponse = z.infer<typeof assessmentResponseSchema>;
 export type AssessmentRequest = z.infer<typeof assessmentRequestSchema>;
 

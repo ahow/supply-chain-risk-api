@@ -3,7 +3,20 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      message = json.message || json.error || text;
+    } catch {
+      if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+        if (res.status === 503) {
+          message = "Service temporarily unavailable. The server may be restarting — please try again in a moment.";
+        } else {
+          message = `Server returned an error (${res.status}). Please try again.`;
+        }
+      }
+    }
+    throw new Error(message);
   }
 }
 

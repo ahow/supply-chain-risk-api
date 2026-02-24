@@ -188,7 +188,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <SupplierTable suppliers={result.top_suppliers} />
+            <SupplierTable tiers={result.supply_chain_tiers} />
 
             <AIAnalysisPanel assessmentData={result} />
           </div>
