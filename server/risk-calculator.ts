@@ -13,11 +13,12 @@ import sectorsData from "./data/sectors.json";
 import riskScoresData from "./data/risk-scores.json";
 import expectedLossData from "./data/expected-loss.json";
 import ioCoefficientsData from "./data/io-coefficients.json";
+import { fetchClimateRisk } from "./climate-api-client";
 
 const countries: CountryInfo[] = countriesData;
 const sectors: SectorInfo[] = sectorsData;
 const riskScores: Record<string, Record<string, number>> = riskScoresData;
-const expectedLoss: Record<string, any> = expectedLossData;
+const staticExpectedLoss: Record<string, any> = expectedLossData;
 const ioCoefficients: Record<string, any> = ioCoefficientsData;
 
 export function getCountries(): CountryInfo[] {
@@ -60,8 +61,8 @@ function getRiskScoresForCountry(countryCode: string): RiskContribution {
   return { climate: 2.5, modern_slavery: 2.5, political: 2.5, water_stress: 2.5, nature_loss: 2.5 };
 }
 
-function getExpectedLossForCountry(countryCode: string): ExpectedLoss | undefined {
-  const loss = expectedLoss[countryCode];
+function getStaticExpectedLoss(countryCode: string): ExpectedLoss | undefined {
+  const loss = staticExpectedLoss[countryCode];
   if (!loss) return undefined;
   return {
     total_annual_loss: loss.total_annual_loss,
@@ -69,6 +70,16 @@ function getExpectedLossForCountry(countryCode: string): ExpectedLoss | undefine
     present_value_30yr: loss.present_value_30yr,
     risk_breakdown: loss.risk_breakdown,
   };
+}
+
+async function getExpectedLossForCountry(countryCode: string): Promise<ExpectedLoss | undefined> {
+  const countryName = getCountryName(countryCode);
+  const liveData = await fetchClimateRisk(countryName);
+  if (liveData) {
+    return liveData;
+  }
+  console.log(`[Risk Calculator] Falling back to static data for ${countryCode}`);
+  return getStaticExpectedLoss(countryCode);
 }
 
 interface RawSupplier {
@@ -97,20 +108,41 @@ function getSuppliers(countryCode: string, sectorCode: string, topN: number): Ra
   return suppliers.slice(0, topN);
 }
 
-export function assessRisk(
+export async function assessRisk(
   countryCode: string,
   sectorCode: string,
   skipClimate: boolean,
   topN: number
-): AssessmentResponse {
+): Promise<AssessmentResponse> {
   const directRiskScores = getRiskScoresForCountry(countryCode);
+  const rawSuppliers = getSuppliers(countryCode, sectorCode, topN);
+
+  let directExpectedLoss: ExpectedLoss | undefined;
+  const supplierLossMap = new Map<string, ExpectedLoss | undefined>();
+
+  if (!skipClimate) {
+    const uniqueCountries = new Set<string>([countryCode]);
+    for (const s of rawSuppliers) {
+      uniqueCountries.add(s.country);
+    }
+
+    const lossResults = await Promise.all(
+      Array.from(uniqueCountries).map(async (code) => {
+        const loss = await getExpectedLossForCountry(code);
+        return { code, loss };
+      })
+    );
+
+    for (const { code, loss } of lossResults) {
+      supplierLossMap.set(code, loss);
+    }
+    directExpectedLoss = supplierLossMap.get(countryCode);
+  }
 
   const directRisk: DirectRisk = {
     ...directRiskScores,
-    expected_loss: skipClimate ? undefined : getExpectedLossForCountry(countryCode),
+    expected_loss: skipClimate ? undefined : directExpectedLoss,
   };
-
-  const rawSuppliers = getSuppliers(countryCode, sectorCode, topN);
 
   const totalCoefficient = rawSuppliers.reduce((sum, s) => sum + s.coefficient, 0);
 
@@ -132,7 +164,7 @@ export function assessRisk(
     indirectWater += supplierRisk.water_stress * normalizedCoeff;
     indirectNature += supplierRisk.nature_loss * normalizedCoeff;
 
-    const supplierLoss = getExpectedLossForCountry(raw.country);
+    const supplierLoss = skipClimate ? undefined : supplierLossMap.get(raw.country);
     let lossContribution: { annual_loss: number; present_value_30yr: number } | undefined;
 
     if (!skipClimate && supplierLoss) {

@@ -31,7 +31,7 @@ export async function registerRoutes(
     res.json(getSectors());
   });
 
-  app.get("/api/assess", (req, res) => {
+  app.get("/api/assess", async (req, res) => {
     const country = (req.query.country as string || "").toUpperCase();
     const sector = req.query.sector as string || "";
     const skipClimate = req.query.skip_climate === "true";
@@ -70,7 +70,7 @@ export async function registerRoutes(
     }
 
     try {
-      const result = assessRisk(country, sector, skipClimate, topN);
+      const result = await assessRisk(country, sector, skipClimate, topN);
       res.json(result);
     } catch (error: any) {
       console.error("Assessment error:", error);
