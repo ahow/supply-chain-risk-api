@@ -29,7 +29,7 @@ export function AssessmentForm({ onSubmit, isLoading }: AssessmentFormProps) {
   const [country, setCountry] = useState("");
   const [sector, setSector] = useState("");
   const [skipClimate, setSkipClimate] = useState(false);
-  const [topN, setTopN] = useState(5);
+  const [topN, setTopN] = useState(10);
 
   const { data: countries } = useQuery<CountryInfo[]>({
     queryKey: ["/api/countries"],

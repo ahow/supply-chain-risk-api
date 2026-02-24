@@ -192,7 +192,7 @@ GET /api/assess?country={ISO3_CODE}&sector={ISIC_CODE}
 | country   | string | Yes      | -       | ISO-3166 alpha-3 country code (e.g., USA, GBR, CHN) |
 | sector    | string | Yes      | -       | ISIC Rev.4 sector code (e.g., B06, C20, K64) |
 | skip_climate | boolean | No  | false   | Set to `true` to skip live climate data (faster response) |
-| top_n     | integer | No     | 5       | Number of suppliers per tier (1-20) |
+| top_n     | integer | No     | 10      | Number of suppliers per tier (1-20) |
 
 **Example Request:**
 ```

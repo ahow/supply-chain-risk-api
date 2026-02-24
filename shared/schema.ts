@@ -93,7 +93,7 @@ export const assessmentRequestSchema = z.object({
   country: z.string().min(2).max(3),
   sector: z.string().min(1),
   skip_climate: z.boolean().default(false),
-  top_n: z.number().int().min(1).max(20).default(5),
+  top_n: z.number().int().min(1).max(20).default(10),
 });
 
 export type RiskBreakdown = z.infer<typeof riskBreakdownSchema>;
