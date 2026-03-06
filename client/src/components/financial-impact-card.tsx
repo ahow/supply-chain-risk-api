@@ -17,7 +17,8 @@ export function FinancialImpactCard({ expectedLoss }: FinancialImpactCardProps) 
           Financial Impact Assessment
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Per $1M asset value, based on probabilistic catastrophe modeling
+          Per $1B asset value, based on probabilistic catastrophe modeling
+          ({(expectedLoss.discount_rate * 100).toFixed(0)}% discount, {(expectedLoss.growth_rate * 100).toFixed(0)}% growth, {expectedLoss.pv_horizon}yr horizon)
         </p>
       </CardHeader>
       <CardContent>
@@ -26,7 +27,7 @@ export function FinancialImpactCard({ expectedLoss }: FinancialImpactCardProps) 
             <TrendingDown className="w-5 h-5 text-destructive mt-0.5" />
             <div>
               <p className="text-xs text-muted-foreground">Annual Expected Loss</p>
-              <p className="text-lg font-semibold font-mono">
+              <p className="text-lg font-semibold font-mono" data-testid="text-annual-loss">
                 ${expectedLoss.total_annual_loss.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
             </div>
@@ -35,7 +36,7 @@ export function FinancialImpactCard({ expectedLoss }: FinancialImpactCardProps) 
             <DollarSign className="w-5 h-5 text-orange-500 dark:text-orange-400 mt-0.5" />
             <div>
               <p className="text-xs text-muted-foreground">% of Asset Value</p>
-              <p className="text-lg font-semibold font-mono">
+              <p className="text-lg font-semibold font-mono" data-testid="text-loss-pct">
                 {expectedLoss.total_annual_loss_pct.toFixed(2)}%
               </p>
             </div>
@@ -43,9 +44,9 @@ export function FinancialImpactCard({ expectedLoss }: FinancialImpactCardProps) 
           <div className="flex items-start gap-3 p-3 rounded-md bg-card">
             <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="text-xs text-muted-foreground">30-Year Present Value</p>
-              <p className="text-lg font-semibold font-mono">
-                ${(expectedLoss.present_value_30yr / 1000).toFixed(0)}k
+              <p className="text-xs text-muted-foreground">Present Value of Expected Losses</p>
+              <p className="text-lg font-semibold font-mono" data-testid="text-present-value">
+                ${expectedLoss.present_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </p>
             </div>
           </div>

@@ -1,9 +1,19 @@
-import type { ExpectedLoss } from "@shared/schema";
-
 const CLIMATE_API_BASE = "https://climate-risk-api-v6-prob-be68437e49be.herokuapp.com";
-const ASSET_VALUE = 1_000_000;
+const ASSET_VALUE = 1_000_000_000;
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 15_000;
+
+export interface RawExpectedLoss {
+  total_annual_loss: number;
+  total_annual_loss_pct: number;
+  risk_breakdown: {
+    hurricane: { annual_loss: number; annual_loss_pct: number };
+    flood: { annual_loss: number; annual_loss_pct: number };
+    heat_stress: { annual_loss: number; annual_loss_pct: number };
+    drought: { annual_loss: number; annual_loss_pct: number };
+    extreme_precipitation: { annual_loss: number; annual_loss_pct: number };
+  };
+}
 
 interface ClimateApiResponse {
   expected_annual_loss: number;
@@ -21,7 +31,7 @@ interface ClimateApiResponse {
 }
 
 interface CacheEntry {
-  data: ExpectedLoss;
+  data: RawExpectedLoss;
   timestamp: number;
 }
 
@@ -31,11 +41,10 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function mapResponseToExpectedLoss(response: ClimateApiResponse): ExpectedLoss {
+function mapResponseToRawExpectedLoss(response: ClimateApiResponse): RawExpectedLoss {
   return {
     total_annual_loss: round2(response.expected_annual_loss),
     total_annual_loss_pct: round2(response.expected_annual_loss_pct),
-    present_value_30yr: Math.round(response.present_value_30yr),
     risk_breakdown: {
       hurricane: {
         annual_loss: round2(response.risk_breakdown.hurricane.annual_loss),
@@ -61,7 +70,7 @@ function mapResponseToExpectedLoss(response: ClimateApiResponse): ExpectedLoss {
   };
 }
 
-export async function fetchClimateRisk(countryName: string): Promise<ExpectedLoss | null> {
+export async function fetchClimateRisk(countryName: string): Promise<RawExpectedLoss | null> {
   const cacheKey = countryName.toLowerCase();
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -92,7 +101,7 @@ export async function fetchClimateRisk(countryName: string): Promise<ExpectedLos
     }
 
     const data: ClimateApiResponse = await response.json();
-    const expectedLoss = mapResponseToExpectedLoss(data);
+    const expectedLoss = mapResponseToRawExpectedLoss(data);
 
     cache.set(cacheKey, { data: expectedLoss, timestamp: Date.now() });
     console.log(`[Climate API] Success for ${countryName}: EAL $${data.expected_annual_loss.toLocaleString()}`);

@@ -21,6 +21,9 @@ interface AssessmentFormProps {
     sector: string;
     skip_climate: boolean;
     top_n: number;
+    discount_rate: number;
+    growth_rate: number;
+    pv_horizon: number;
   }) => void;
   isLoading: boolean;
 }
@@ -30,6 +33,9 @@ export function AssessmentForm({ onSubmit, isLoading }: AssessmentFormProps) {
   const [sector, setSector] = useState("");
   const [skipClimate, setSkipClimate] = useState(false);
   const [topN, setTopN] = useState(10);
+  const [discountRate, setDiscountRate] = useState(10);
+  const [growthRate, setGrowthRate] = useState(4);
+  const [pvHorizon, setPvHorizon] = useState(30);
 
   const { data: countries } = useQuery<CountryInfo[]>({
     queryKey: ["/api/countries"],
@@ -58,7 +64,15 @@ export function AssessmentForm({ onSubmit, isLoading }: AssessmentFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (country && sector) {
-      onSubmit({ country, sector, skip_climate: skipClimate, top_n: topN });
+      onSubmit({
+        country,
+        sector,
+        skip_climate: skipClimate,
+        top_n: topN,
+        discount_rate: discountRate / 100,
+        growth_rate: growthRate / 100,
+        pv_horizon: pvHorizon,
+      });
     }
   };
 
@@ -132,19 +146,17 @@ export function AssessmentForm({ onSubmit, isLoading }: AssessmentFormProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="include-climate"
-                  checked={!skipClimate}
-                  onCheckedChange={(checked) => setSkipClimate(!checked)}
-                  data-testid="switch-climate"
-                />
-                <Label htmlFor="include-climate" className="text-sm cursor-pointer">
-                  Include climate financial impact
-                </Label>
-              </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="include-climate"
+                checked={!skipClimate}
+                onCheckedChange={(checked) => setSkipClimate(!checked)}
+                data-testid="switch-climate"
+              />
+              <Label htmlFor="include-climate" className="text-sm cursor-pointer">
+                Include climate financial impact
+              </Label>
             </div>
 
             <div className="flex items-center gap-3">
@@ -161,10 +173,58 @@ export function AssessmentForm({ onSubmit, isLoading }: AssessmentFormProps) {
                 data-testid="slider-top-n"
               />
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">
+                Discount rate: {discountRate}%
+              </Label>
+              <Slider
+                value={[discountRate]}
+                onValueChange={([val]) => setDiscountRate(val)}
+                min={1}
+                max={30}
+                step={1}
+                className="w-24"
+                data-testid="slider-discount-rate"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">
+                Loss growth: {growthRate}%
+              </Label>
+              <Slider
+                value={[growthRate]}
+                onValueChange={([val]) => setGrowthRate(val)}
+                min={0}
+                max={20}
+                step={1}
+                className="w-24"
+                data-testid="slider-growth-rate"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">
+                PV horizon: {pvHorizon}yr
+              </Label>
+              <Slider
+                value={[pvHorizon]}
+                onValueChange={([val]) => setPvHorizon(val)}
+                min={5}
+                max={50}
+                step={5}
+                className="w-24"
+                data-testid="slider-pv-horizon"
+              />
+            </div>
 
             <Button
               type="submit"
               disabled={!country || !sector || isLoading}
+              className="ml-auto"
               data-testid="button-assess"
             >
               <Search className="w-4 h-4 mr-1.5" />

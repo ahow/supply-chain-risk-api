@@ -6,12 +6,16 @@ export type RiskDimension = typeof riskDimensions[number];
 export const riskBreakdownSchema = z.object({
   annual_loss: z.number(),
   annual_loss_pct: z.number(),
+  present_value: z.number(),
 });
 
 export const expectedLossSchema = z.object({
   total_annual_loss: z.number(),
   total_annual_loss_pct: z.number(),
-  present_value_30yr: z.number(),
+  present_value: z.number(),
+  discount_rate: z.number(),
+  growth_rate: z.number(),
+  pv_horizon: z.number(),
   risk_breakdown: z.object({
     hurricane: riskBreakdownSchema,
     flood: riskBreakdownSchema,
@@ -61,7 +65,7 @@ export const supplierSchema = z.object({
   risk_contribution: riskContributionSchema,
   expected_loss_contribution: z.object({
     annual_loss: z.number(),
-    present_value_30yr: z.number(),
+    present_value: z.number(),
   }).optional(),
 });
 
@@ -94,6 +98,9 @@ export const assessmentRequestSchema = z.object({
   sector: z.string().min(1),
   skip_climate: z.boolean().default(false),
   top_n: z.number().int().min(1).max(20).default(10),
+  discount_rate: z.number().min(0).max(1).default(0.10),
+  growth_rate: z.number().min(0).max(1).default(0.04),
+  pv_horizon: z.number().int().min(1).max(100).default(30),
 });
 
 export type RiskBreakdown = z.infer<typeof riskBreakdownSchema>;

@@ -11,11 +11,11 @@ import {
 
 interface HazardBreakdownProps {
   breakdown: {
-    hurricane: { annual_loss: number; annual_loss_pct: number };
-    flood: { annual_loss: number; annual_loss_pct: number };
-    heat_stress: { annual_loss: number; annual_loss_pct: number };
-    drought: { annual_loss: number; annual_loss_pct: number };
-    extreme_precipitation: { annual_loss: number; annual_loss_pct: number };
+    hurricane: { annual_loss: number; annual_loss_pct: number; present_value: number };
+    flood: { annual_loss: number; annual_loss_pct: number; present_value: number };
+    heat_stress: { annual_loss: number; annual_loss_pct: number; present_value: number };
+    drought: { annual_loss: number; annual_loss_pct: number; present_value: number };
+    extreme_precipitation: { annual_loss: number; annual_loss_pct: number; present_value: number };
   };
 }
 

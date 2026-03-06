@@ -32,12 +32,18 @@ export default function Dashboard() {
       sector: string;
       skip_climate: boolean;
       top_n: number;
+      discount_rate: number;
+      growth_rate: number;
+      pv_horizon: number;
     }) => {
       const query = new URLSearchParams({
         country: params.country,
         sector: params.sector,
         skip_climate: String(params.skip_climate),
         top_n: String(params.top_n),
+        discount_rate: String(params.discount_rate),
+        growth_rate: String(params.growth_rate),
+        pv_horizon: String(params.pv_horizon),
       });
       const res = await apiRequest("GET", `/api/assess?${query.toString()}`);
       return (await res.json()) as AssessmentResponse;

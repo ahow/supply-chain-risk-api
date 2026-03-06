@@ -14,7 +14,7 @@ import sectorsData from "./data/sectors.json";
 import riskScoresData from "./data/risk-scores.json";
 import expectedLossData from "./data/expected-loss.json";
 import ioCoefficientsData from "./data/io-coefficients.json";
-import { fetchClimateRisk } from "./climate-api-client";
+import { fetchClimateRisk, type RawExpectedLoss } from "./climate-api-client";
 
 const countries: CountryInfo[] = countriesData;
 const sectors: SectorInfo[] = sectorsData;
@@ -64,25 +64,58 @@ function getRiskScoresForCountry(countryCode: string): RiskContribution {
   return { climate: 2.5, modern_slavery: 2.5, political: 2.5, water_stress: 2.5, nature_loss: 2.5 };
 }
 
-function getStaticExpectedLoss(countryCode: string): ExpectedLoss | undefined {
+function getStaticRawExpectedLoss(countryCode: string): RawExpectedLoss | undefined {
   const loss = staticExpectedLoss[countryCode];
   if (!loss) return undefined;
   return {
     total_annual_loss: loss.total_annual_loss,
     total_annual_loss_pct: loss.total_annual_loss_pct,
-    present_value_30yr: loss.present_value_30yr,
     risk_breakdown: loss.risk_breakdown,
   };
 }
 
-async function getExpectedLossForCountry(countryCode: string): Promise<ExpectedLoss | undefined> {
+async function getRawExpectedLossForCountry(countryCode: string): Promise<RawExpectedLoss | undefined> {
   const countryName = getCountryName(countryCode);
   const liveData = await fetchClimateRisk(countryName);
   if (liveData) {
     return liveData;
   }
   console.log(`[Risk Calculator] Falling back to static data for ${countryCode}`);
-  return getStaticExpectedLoss(countryCode);
+  return getStaticRawExpectedLoss(countryCode);
+}
+
+function computePV(annualLoss: number, discountRate: number, growthRate: number, horizon: number): number {
+  if (discountRate === growthRate) {
+    return Math.round(annualLoss * horizon / (1 + discountRate));
+  }
+  const ratio = (1 + growthRate) / (1 + discountRate);
+  return Math.round(annualLoss / (discountRate - growthRate) * (1 - Math.pow(ratio, horizon)));
+}
+
+function rawToExpectedLoss(
+  raw: RawExpectedLoss,
+  discountRate: number,
+  growthRate: number,
+  pvHorizon: number
+): ExpectedLoss {
+  const hazards = ["hurricane", "flood", "heat_stress", "drought", "extreme_precipitation"] as const;
+  const breakdown: any = {};
+  for (const h of hazards) {
+    breakdown[h] = {
+      annual_loss: raw.risk_breakdown[h].annual_loss,
+      annual_loss_pct: raw.risk_breakdown[h].annual_loss_pct,
+      present_value: computePV(raw.risk_breakdown[h].annual_loss, discountRate, growthRate, pvHorizon),
+    };
+  }
+  return {
+    total_annual_loss: raw.total_annual_loss,
+    total_annual_loss_pct: raw.total_annual_loss_pct,
+    present_value: computePV(raw.total_annual_loss, discountRate, growthRate, pvHorizon),
+    discount_rate: discountRate,
+    growth_rate: growthRate,
+    pv_horizon: pvHorizon,
+    risk_breakdown: breakdown,
+  };
 }
 
 interface RawSupplier {
@@ -119,11 +152,18 @@ function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
 
+interface PVParams {
+  discountRate: number;
+  growthRate: number;
+  pvHorizon: number;
+}
+
 function buildTierSuppliers(
   rawSuppliers: RawSupplier[],
   tier: number,
-  lossMap: Map<string, ExpectedLoss | undefined>,
-  skipClimate: boolean
+  lossMap: Map<string, RawExpectedLoss | undefined>,
+  skipClimate: boolean,
+  pvParams: PVParams
 ): {
   suppliers: Supplier[];
   tierRisk: RiskContribution;
@@ -144,17 +184,16 @@ function buildTierSuppliers(
     wWater += risk.water_stress * norm;
     wNature += risk.nature_loss * norm;
 
-    const loss = skipClimate ? undefined : lossMap.get(raw.country);
-    let lossContribution: { annual_loss: number; present_value_30yr: number } | undefined;
+    const rawLoss = skipClimate ? undefined : lossMap.get(raw.country);
+    let lossContribution: { annual_loss: number; present_value: number } | undefined;
 
-    if (!skipClimate && loss) {
-      const annualContrib = loss.total_annual_loss * norm;
-      const pvContrib = loss.present_value_30yr * norm;
+    if (!skipClimate && rawLoss) {
+      const annualContrib = rawLoss.total_annual_loss * norm;
       wLoss += annualContrib;
-      wLossPct += loss.total_annual_loss_pct * norm;
+      wLossPct += rawLoss.total_annual_loss_pct * norm;
       lossContribution = {
         annual_loss: round2(annualContrib),
-        present_value_30yr: Math.round(pvContrib),
+        present_value: computePV(annualContrib, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
       };
     }
 
@@ -197,9 +236,13 @@ export async function assessRisk(
   countryCode: string,
   sectorCode: string,
   skipClimate: boolean,
-  topN: number
+  topN: number,
+  discountRate: number = 0.10,
+  growthRate: number = 0.04,
+  pvHorizon: number = 30
 ): Promise<AssessmentResponse> {
   const directRiskScores = getRiskScoresForCountry(countryCode);
+  const pvParams: PVParams = { discountRate, growthRate, pvHorizon };
 
   const tier1Raw = getRawSuppliers(countryCode, sectorCode, topN);
 
@@ -220,14 +263,14 @@ export async function assessRisk(
     allCountries.add(s.country);
   }
 
-  const lossMap = new Map<string, ExpectedLoss | undefined>();
+  const lossMap = new Map<string, RawExpectedLoss | undefined>();
   if (!skipClimate) {
     const BATCH_TIMEOUT_MS = 20_000;
     const countryCodes = Array.from(allCountries);
 
     const batchPromise = Promise.all(
       countryCodes.map(async (code) => {
-        const loss = await getExpectedLossForCountry(code);
+        const loss = await getRawExpectedLossForCountry(code);
         return { code, loss };
       })
     );
@@ -249,21 +292,25 @@ export async function assessRisk(
 
     for (const code of countryCodes) {
       if (!lossMap.has(code)) {
-        const staticLoss = getStaticExpectedLoss(code);
+        const staticLoss = getStaticRawExpectedLoss(code);
         lossMap.set(code, staticLoss);
       }
     }
   }
 
-  const directExpectedLoss = skipClimate ? undefined : lossMap.get(countryCode);
+  const rawDirectLoss = skipClimate ? undefined : lossMap.get(countryCode);
+  const directExpectedLoss = rawDirectLoss
+    ? rawToExpectedLoss(rawDirectLoss, discountRate, growthRate, pvHorizon)
+    : undefined;
+
   const directRisk: DirectRisk = {
     ...directRiskScores,
     expected_loss: directExpectedLoss,
   };
 
-  const t1 = buildTierSuppliers(tier1Raw, 1, lossMap, skipClimate);
-  const t2 = buildTierSuppliers(tier2Raw, 2, lossMap, skipClimate);
-  const t3 = buildTierSuppliers(tier3Raw, 3, lossMap, skipClimate);
+  const t1 = buildTierSuppliers(tier1Raw, 1, lossMap, skipClimate, pvParams);
+  const t2 = buildTierSuppliers(tier2Raw, 2, lossMap, skipClimate, pvParams);
+  const t3 = buildTierSuppliers(tier3Raw, 3, lossMap, skipClimate, pvParams);
 
   const indirectRisk: IndirectRisk = {
     climate: round2(t1.tierRisk.climate * TIER_WEIGHTS[0] + t2.tierRisk.climate * TIER_WEIGHTS[1] + t3.tierRisk.climate * TIER_WEIGHTS[2]),

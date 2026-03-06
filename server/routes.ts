@@ -35,7 +35,13 @@ export async function registerRoutes(
     const country = (req.query.country as string || "").toUpperCase();
     const sector = req.query.sector as string || "";
     const skipClimate = req.query.skip_climate === "true";
-    const topN = Math.min(Math.max(parseInt(req.query.top_n as string) || 5, 1), 20);
+    const topN = Math.min(Math.max(parseInt(req.query.top_n as string) || 10, 1), 20);
+    const parsedDR = parseFloat(req.query.discount_rate as string);
+    const discountRate = Math.min(Math.max(Number.isNaN(parsedDR) ? 0.10 : parsedDR, 0), 1);
+    const parsedGR = parseFloat(req.query.growth_rate as string);
+    const growthRate = Math.min(Math.max(Number.isNaN(parsedGR) ? 0.04 : parsedGR, 0), 1);
+    const parsedPH = parseInt(req.query.pv_horizon as string);
+    const pvHorizon = Math.min(Math.max(Number.isNaN(parsedPH) ? 30 : parsedPH, 1), 100);
 
     if (!country) {
       return res.status(400).json({
@@ -70,7 +76,7 @@ export async function registerRoutes(
     }
 
     try {
-      const result = await assessRisk(country, sector, skipClimate, topN);
+      const result = await assessRisk(country, sector, skipClimate, topN, discountRate, growthRate, pvHorizon);
       res.json(result);
     } catch (error: any) {
       console.error("Assessment error:", error);
