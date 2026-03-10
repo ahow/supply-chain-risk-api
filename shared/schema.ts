@@ -40,10 +40,7 @@ export const indirectRiskSchema = z.object({
   political: z.number(),
   water_stress: z.number(),
   nature_loss: z.number(),
-  expected_loss: z.object({
-    total_annual_loss: z.number(),
-    total_annual_loss_pct: z.number(),
-  }).optional(),
+  expected_loss: expectedLossSchema.optional(),
 });
 
 export const riskContributionSchema = z.object({
@@ -74,10 +71,7 @@ export const tierSummarySchema = z.object({
   weight: z.number(),
   supplier_count: z.number(),
   risk: riskContributionSchema,
-  expected_loss: z.object({
-    total_annual_loss: z.number(),
-    total_annual_loss_pct: z.number(),
-  }).optional(),
+  expected_loss: expectedLossSchema.optional(),
   suppliers: z.array(supplierSchema),
 });
 

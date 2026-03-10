@@ -158,6 +158,14 @@ interface PVParams {
   pvHorizon: number;
 }
 
+const HAZARD_KEYS = ["hurricane", "flood", "heat_stress", "drought", "extreme_precipitation"] as const;
+
+interface TierLossResult {
+  total_annual_loss: number;
+  total_annual_loss_pct: number;
+  hazard_losses: Record<string, { annual_loss: number; annual_loss_pct: number }>;
+}
+
 function buildTierSuppliers(
   rawSuppliers: RawSupplier[],
   tier: number,
@@ -167,12 +175,16 @@ function buildTierSuppliers(
 ): {
   suppliers: Supplier[];
   tierRisk: RiskContribution;
-  tierLoss: { total_annual_loss: number; total_annual_loss_pct: number } | undefined;
+  tierLoss: TierLossResult | undefined;
 } {
   const totalCoeff = rawSuppliers.reduce((sum, s) => sum + s.coefficient, 0);
 
   let wClimate = 0, wSlavery = 0, wPolitical = 0, wWater = 0, wNature = 0;
   let wLoss = 0, wLossPct = 0;
+  const wHazard: Record<string, { loss: number; pct: number }> = {};
+  for (const h of HAZARD_KEYS) {
+    wHazard[h] = { loss: 0, pct: 0 };
+  }
 
   const suppliers: Supplier[] = rawSuppliers.map((raw) => {
     const risk = getRiskScoresForCountry(raw.country);
@@ -191,6 +203,10 @@ function buildTierSuppliers(
       const annualContrib = rawLoss.total_annual_loss * norm;
       wLoss += annualContrib;
       wLossPct += rawLoss.total_annual_loss_pct * norm;
+      for (const h of HAZARD_KEYS) {
+        wHazard[h].loss += rawLoss.risk_breakdown[h].annual_loss * norm;
+        wHazard[h].pct += rawLoss.risk_breakdown[h].annual_loss_pct * norm;
+      }
       lossContribution = {
         annual_loss: round2(annualContrib),
         present_value: computePV(annualContrib, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
@@ -216,6 +232,11 @@ function buildTierSuppliers(
     };
   });
 
+  const hazardLosses: Record<string, { annual_loss: number; annual_loss_pct: number }> = {};
+  for (const h of HAZARD_KEYS) {
+    hazardLosses[h] = { annual_loss: round2(wHazard[h].loss), annual_loss_pct: round2(wHazard[h].pct) };
+  }
+
   return {
     suppliers,
     tierRisk: {
@@ -228,7 +249,29 @@ function buildTierSuppliers(
     tierLoss: skipClimate ? undefined : {
       total_annual_loss: round2(wLoss),
       total_annual_loss_pct: round2(wLossPct),
+      hazard_losses: hazardLosses,
     },
+  };
+}
+
+function tierLossToExpectedLoss(tierLoss: TierLossResult, pvParams: PVParams): ExpectedLoss {
+  const breakdown: any = {};
+  for (const h of HAZARD_KEYS) {
+    const hl = tierLoss.hazard_losses[h];
+    breakdown[h] = {
+      annual_loss: hl.annual_loss,
+      annual_loss_pct: hl.annual_loss_pct,
+      present_value: computePV(hl.annual_loss, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
+    };
+  }
+  return {
+    total_annual_loss: tierLoss.total_annual_loss,
+    total_annual_loss_pct: tierLoss.total_annual_loss_pct,
+    present_value: computePV(tierLoss.total_annual_loss, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
+    discount_rate: pvParams.discountRate,
+    growth_rate: pvParams.growthRate,
+    pv_horizon: pvParams.pvHorizon,
+    risk_breakdown: breakdown,
   };
 }
 
@@ -312,24 +355,52 @@ export async function assessRisk(
   const t2 = buildTierSuppliers(tier2Raw, 2, lossMap, skipClimate, pvParams);
   const t3 = buildTierSuppliers(tier3Raw, 3, lossMap, skipClimate, pvParams);
 
+  const tiers = [t1, t2, t3];
+  let indirectExpectedLoss: ExpectedLoss | undefined;
+
+  if (!skipClimate) {
+    const indirectTotalAnnual = round2(
+      (t1.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[0] +
+      (t2.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[1] +
+      (t3.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[2]
+    );
+    const indirectTotalPct = round2(
+      (t1.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[0] +
+      (t2.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[1] +
+      (t3.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[2]
+    );
+    const indirectBreakdown: any = {};
+    for (const h of HAZARD_KEYS) {
+      const hazardAnnual = round2(
+        tiers.reduce((sum, t, i) => sum + (t.tierLoss?.hazard_losses[h]?.annual_loss || 0) * TIER_WEIGHTS[i], 0)
+      );
+      const hazardPct = round2(
+        tiers.reduce((sum, t, i) => sum + (t.tierLoss?.hazard_losses[h]?.annual_loss_pct || 0) * TIER_WEIGHTS[i], 0)
+      );
+      indirectBreakdown[h] = {
+        annual_loss: hazardAnnual,
+        annual_loss_pct: hazardPct,
+        present_value: computePV(hazardAnnual, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
+      };
+    }
+    indirectExpectedLoss = {
+      total_annual_loss: indirectTotalAnnual,
+      total_annual_loss_pct: indirectTotalPct,
+      present_value: computePV(indirectTotalAnnual, pvParams.discountRate, pvParams.growthRate, pvParams.pvHorizon),
+      discount_rate: pvParams.discountRate,
+      growth_rate: pvParams.growthRate,
+      pv_horizon: pvParams.pvHorizon,
+      risk_breakdown: indirectBreakdown,
+    };
+  }
+
   const indirectRisk: IndirectRisk = {
     climate: round2(t1.tierRisk.climate * TIER_WEIGHTS[0] + t2.tierRisk.climate * TIER_WEIGHTS[1] + t3.tierRisk.climate * TIER_WEIGHTS[2]),
     modern_slavery: round2(t1.tierRisk.modern_slavery * TIER_WEIGHTS[0] + t2.tierRisk.modern_slavery * TIER_WEIGHTS[1] + t3.tierRisk.modern_slavery * TIER_WEIGHTS[2]),
     political: round2(t1.tierRisk.political * TIER_WEIGHTS[0] + t2.tierRisk.political * TIER_WEIGHTS[1] + t3.tierRisk.political * TIER_WEIGHTS[2]),
     water_stress: round2(t1.tierRisk.water_stress * TIER_WEIGHTS[0] + t2.tierRisk.water_stress * TIER_WEIGHTS[1] + t3.tierRisk.water_stress * TIER_WEIGHTS[2]),
     nature_loss: round2(t1.tierRisk.nature_loss * TIER_WEIGHTS[0] + t2.tierRisk.nature_loss * TIER_WEIGHTS[1] + t3.tierRisk.nature_loss * TIER_WEIGHTS[2]),
-    expected_loss: skipClimate ? undefined : {
-      total_annual_loss: round2(
-        (t1.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[0] +
-        (t2.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[1] +
-        (t3.tierLoss?.total_annual_loss || 0) * TIER_WEIGHTS[2]
-      ),
-      total_annual_loss_pct: round2(
-        (t1.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[0] +
-        (t2.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[1] +
-        (t3.tierLoss?.total_annual_loss_pct || 0) * TIER_WEIGHTS[2]
-      ),
-    },
+    expected_loss: indirectExpectedLoss,
   };
 
   const totalRisk: RiskContribution = {
@@ -340,11 +411,14 @@ export async function assessRisk(
     nature_loss: round2(directRiskScores.nature_loss * 0.6 + indirectRisk.nature_loss * 0.4),
   };
 
-  const supplyChainTiers: TierSummary[] = [
-    { tier: 1, weight: TIER_WEIGHTS[0], supplier_count: t1.suppliers.length, risk: t1.tierRisk, expected_loss: t1.tierLoss, suppliers: t1.suppliers },
-    { tier: 2, weight: TIER_WEIGHTS[1], supplier_count: t2.suppliers.length, risk: t2.tierRisk, expected_loss: t2.tierLoss, suppliers: t2.suppliers },
-    { tier: 3, weight: TIER_WEIGHTS[2], supplier_count: t3.suppliers.length, risk: t3.tierRisk, expected_loss: t3.tierLoss, suppliers: t3.suppliers },
-  ];
+  const supplyChainTiers: TierSummary[] = tiers.map((t, i) => ({
+    tier: i + 1,
+    weight: TIER_WEIGHTS[i],
+    supplier_count: t.suppliers.length,
+    risk: t.tierRisk,
+    expected_loss: t.tierLoss ? tierLossToExpectedLoss(t.tierLoss, pvParams) : undefined,
+    suppliers: t.suppliers,
+  }));
 
   const allSuppliers = [...t1.suppliers, ...t2.suppliers, ...t3.suppliers];
 

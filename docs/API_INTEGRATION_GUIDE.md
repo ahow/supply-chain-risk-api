@@ -248,7 +248,18 @@ GET /api/assess?country=CHN&sector=C26&skip_climate=true&top_n=5
     "nature_loss": 2.84,
     "expected_loss": {
       "total_annual_loss": 100121400,
-      "total_annual_loss_pct": 10.01
+      "total_annual_loss_pct": 10.01,
+      "present_value": 1358524816,
+      "discount_rate": 0.10,
+      "growth_rate": 0.04,
+      "pv_horizon": 30,
+      "risk_breakdown": {
+        "hurricane": { "annual_loss": 5012300, "annual_loss_pct": 0.50, "present_value": 67988944 },
+        "flood": { "annual_loss": 41234560, "annual_loss_pct": 4.12, "present_value": 559509120 },
+        "heat_stress": { "annual_loss": 29456780, "annual_loss_pct": 2.95, "present_value": 399689416 },
+        "drought": { "annual_loss": 19876540, "annual_loss_pct": 1.99, "present_value": 269701024 },
+        "extreme_precipitation": { "annual_loss": 4541220, "annual_loss_pct": 0.45, "present_value": 61636312 }
+      }
     }
   },
 
@@ -274,7 +285,18 @@ GET /api/assess?country=CHN&sector=C26&skip_climate=true&top_n=5
       },
       "expected_loss": {
         "total_annual_loss": 91127860,
-        "total_annual_loss_pct": 9.11
+        "total_annual_loss_pct": 9.11,
+        "present_value": 1236382640,
+        "discount_rate": 0.10,
+        "growth_rate": 0.04,
+        "pv_horizon": 30,
+        "risk_breakdown": {
+          "hurricane": { "annual_loss": 4523100, "annual_loss_pct": 0.45, "present_value": 61390356 },
+          "flood": { "annual_loss": 38234560, "annual_loss_pct": 3.82, "present_value": 518775936 },
+          "heat_stress": { "annual_loss": 27456780, "annual_loss_pct": 2.75, "present_value": 372557932 },
+          "drought": { "annual_loss": 16234560, "annual_loss_pct": 1.62, "present_value": 220268464 },
+          "extreme_precipitation": { "annual_loss": 4678860, "annual_loss_pct": 0.47, "present_value": 63503952 }
+        }
       },
       "suppliers": [
         {
@@ -343,14 +365,14 @@ GET /api/assess?country=CHN&sector=C26&skip_climate=true&top_n=5
 | `direct_risk.expected_loss.pv_horizon` | Time horizon in years for PV calculation (as provided or default 30) |
 | `direct_risk.expected_loss.risk_breakdown` | Loss decomposed by hazard type, each with `annual_loss`, `annual_loss_pct`, and `present_value` |
 | `indirect_risk` | Weighted average risk from upstream supply chain across all 3 tiers |
-| `indirect_risk.expected_loss` | Aggregated expected loss from all upstream suppliers (tier-weighted) |
+| `indirect_risk.expected_loss` | Aggregated expected loss from all upstream suppliers (tier-weighted), with per-hazard breakdown and present values |
 | `total_risk` | Blended score: 60% direct + 40% indirect |
 | `supply_chain_tiers` | Array of 3 tier objects with per-tier risk, expected loss, and supplier detail |
 | `supply_chain_tiers[].tier` | Tier number (1, 2, or 3) |
 | `supply_chain_tiers[].weight` | Weight applied to this tier (0.50, 0.35, or 0.15) |
 | `supply_chain_tiers[].supplier_count` | Number of distinct suppliers in this tier |
 | `supply_chain_tiers[].risk` | Coefficient-weighted average risk scores for this tier |
-| `supply_chain_tiers[].expected_loss` | Aggregated expected loss across suppliers in this tier |
+| `supply_chain_tiers[].expected_loss` | Aggregated expected loss across suppliers in this tier, with per-hazard breakdown and present values |
 | `supply_chain_tiers[].suppliers` | Array of supplier objects in this tier |
 | `top_suppliers` | Flat list of all suppliers across all 3 tiers |
 | `top_suppliers[].tier` | Which tier this supplier belongs to (1, 2, or 3) |
